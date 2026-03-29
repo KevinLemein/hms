@@ -1,7 +1,9 @@
 import axios from "axios";
 
+// In development (Vite dev server): requests go to http://localhost:8080/api
+// In production (Docker/nginx): nginx proxies /api/ to backend, so just use /api
 const api = axios.create({
-    baseURL: "http://localhost:8080/api",
+    baseURL: import.meta.env.DEV ? "http://localhost:8080/api" : "/api",
     headers: {
         "Content-Type": "application/json",
     },
