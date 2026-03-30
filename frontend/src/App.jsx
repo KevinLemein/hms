@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Unauthorised from "./pages/Unauthorised";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
     return (
@@ -23,6 +24,7 @@ function App() {
                     {/* Private routes*/}
 
                     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /> </ProtectedRoute>} />
+                    <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
 
                     {/*
                         Role-specific routes — add these as you build features:

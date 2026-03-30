@@ -1,9 +1,16 @@
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import {useEffect} from "react";
 
 export default function Dashboard() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (user?.role === "ADMIN") {
+            navigate("/admin");
+        }
+    }, [user, navigate]);
 
     const handleLogout = () => {
         logout();
@@ -139,16 +146,6 @@ export default function Dashboard() {
                             />
                         </>
                     )}
-                </div>
-
-                {/* Auth Debug Info — remove in production */}
-                <div className="mt-10 bg-white rounded-xl border border-slate-200 p-6">
-                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
-                        Auth Debug Info
-                    </h3>
-                    <pre className="bg-slate-900 text-emerald-400 text-sm p-4 rounded-lg overflow-x-auto">
-            {JSON.stringify(user, null, 2)}
-          </pre>
                 </div>
             </main>
         </div>

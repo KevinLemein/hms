@@ -38,12 +38,26 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // Admin-only endpoints
+                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+
+                        // Doctor-only endpoints
                         .requestMatchers("/api/doctors/**").hasAuthority("ROLE_DOCTOR")
-                        .requestMatchers("/api/receptionist/**").hasAuthority("ROLE_RECEPTIONIST")
+
+                        // Receptionist endpoints
+                        .requestMatchers("/api/receptionist/**").hasAnyAuthority("ROLE_RECEPTIONIST", "ROLE_ADMIN")
+
+                        // Patient endpoints (read-only dashboard)
                         .requestMatchers("/api/patients/me/**").hasAuthority("ROLE_PATIENT")
-                        .requestMatchers("/api/patients/**").hasAnyAuthority("ROLE_DOCTOR", "ROLE_RECEPTIONIST")
-                        .requestMatchers("/api/appointments/**").hasAnyAuthority("ROLE_DOCTOR", "ROLE_RECEPTIONIST")
+
+                        // Shared endpoints (accessible by doctor and receptionist)
+                        .requestMatchers("/api/patients/**").hasAnyAuthority("ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_ADMIN")
+                        .requestMatchers("/api/appointments/**").hasAnyAuthority("ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_ADMIN")
+
+                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
@@ -54,14 +68,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
-//    @Bean
-//    public AuthenticationProvider authenticationProvider() {
-//        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-//        authProvider.setUserDetailsService(userDetailsService);
-//        authProvider.setPasswordEncoder(passwordEncoder());
-//        return authProvider;
-//    }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
