@@ -23,7 +23,7 @@ public class UserService {
     /**
      * Create a user with a specific role.
      * Admin can create: ADMIN, DOCTOR, RECEPTIONIST
-     * Receptionist can create: DOCTOR, RECEPTIONIST PATIENT
+     * Receptionist can create: DOCTOR, RECEPTIONIST, PATIENT
      */
 
     public UserResponse createUser(CreateUserRequest request, Role creatorRole) {
@@ -31,18 +31,32 @@ public class UserService {
         Role requestedRole;
 
         try{
-            requestedRole = Role.valueOf(request.getRole());
+            requestedRole = Role.valueOf(request.getRole().toUpperCase());
 
         }
         catch (IllegalArgumentException e){
             throw new RuntimeException("Invalid role " + request.getRole());
         }
 
-        if (creatorRole == Role.ROLE_RECEPTIONIST) {
-            if (requestedRole == Role.ROLE_ADMIN) {
-                throw new RuntimeException( "Receptionists cant create admins");
-            }
+//        if (creatorRole == Role.ROLE_RECEPTIONIST) {
+//            if (requestedRole == Role.ROLE_ADMIN) {
+//                throw new RuntimeException( "Receptionists cant create admins");
+//            }
+//
+//        }
+//
+//        if (creatorRole == Role.ROLE_ADMIN) {
+//            if (requestedRole == Role.ROLE_PATIENT) {
+//                throw new RuntimeException("Admins cannot create patients. Patients are registered by the receptionist.");
+//            }
+//        }
 
+        if (creatorRole == Role.ROLE_RECEPTIONIST && requestedRole == Role.ROLE_ADMIN) {
+            throw new RuntimeException("Receptionists can't create admins");
+        }
+
+        if (creatorRole == Role.ROLE_ADMIN && requestedRole == Role.ROLE_PATIENT) {
+            throw new RuntimeException("Admins cannot create patients.");
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {

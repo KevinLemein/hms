@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
@@ -11,7 +11,6 @@ export default function Login() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Redirect to where they came from, or dashboard
     const from = location.state?.from?.pathname || "/dashboard";
 
     const handleChange = (e) => {
@@ -32,9 +31,7 @@ export default function Login() {
                 setError(response.message || "Login failed");
             }
         } catch (err) {
-            setError(
-                err.response?.data?.message || "Invalid email or password"
-            );
+            setError(err.response?.data?.message || "Invalid email or password");
         } finally {
             setLoading(false);
         }
@@ -114,38 +111,27 @@ export default function Login() {
                                 Email Address
                             </label>
                             <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                required
-                                value={formData.email}
-                                onChange={handleChange}
+                                id="email" name="email" type="email" required
+                                value={formData.email} onChange={handleChange}
                                 placeholder="doctor@medicare.com"
                                 className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                             />
                         </div>
 
                         <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                                    Password
-                                </label>
-                            </div>
+                            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
+                                Password
+                            </label>
                             <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                                value={formData.password}
-                                onChange={handleChange}
+                                id="password" name="password" type="password" required
+                                value={formData.password} onChange={handleChange}
                                 placeholder="••••••••"
                                 className="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                             />
                         </div>
 
                         <button
-                            type="submit"
-                            disabled={loading}
+                            type="submit" disabled={loading}
                             className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {loading ? (
@@ -159,11 +145,8 @@ export default function Login() {
                         </button>
                     </form>
 
-                    <p className="mt-8 text-center text-slate-500 text-sm">
-                        Don't have an account?{" "}
-                        <Link to="/register" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">
-                            Create Account
-                        </Link>
+                    <p className="mt-8 text-center text-slate-400 text-xs">
+                        Contact your administrator if you need an account.
                     </p>
                 </div>
             </div>

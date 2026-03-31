@@ -18,21 +18,21 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthResponse>> register(
-            @Valid @RequestBody RegisterRequest request
-    ) {
-        try {
-            AuthResponse response = authService.register(request);
-            return ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("User registered successfully", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
-        }
-    }
+//    @PostMapping("/register")
+//    public ResponseEntity<ApiResponse<AuthResponse>> register(
+//            @Valid @RequestBody RegisterRequest request
+//    ) {
+//        try {
+//            AuthResponse response = authService.register(request);
+//            return ResponseEntity
+//                    .status(HttpStatus.CREATED)
+//                    .body(ApiResponse.success("User registered successfully", response));
+//        } catch (RuntimeException e) {
+//            return ResponseEntity
+//                    .badRequest()
+//                    .body(ApiResponse.error(e.getMessage()));
+//        }
+//    }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(

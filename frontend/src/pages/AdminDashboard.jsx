@@ -1,12 +1,8 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
 import adminService from "../api/adminService";
 
 export default function AdminDashboard() {
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
-
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -31,18 +27,12 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleLogout = () => {
-        logout();
-        navigate("/login");
-    };
-
     const handleToggleStatus = async (userId) => {
         try {
             const response = await adminService.toggleUserStatus(userId);
             if (response.success) {
                 setUsers(users.map((u) => (u.id === userId ? response.data : u)));
-                setSuccess("User status updated");
-                setTimeout(() => setSuccess(""), 3000);
+                showAlert("User status updated");
             }
         } catch (err) {
             setError("Failed to update user status");
@@ -54,18 +44,20 @@ export default function AdminDashboard() {
             const response = await adminService.updateUserRole(userId, newRole);
             if (response.success) {
                 setUsers(users.map((u) => (u.id === userId ? response.data : u)));
-                setSuccess("Role updated successfully");
-                setTimeout(() => setSuccess(""), 3000);
+                showAlert("Role updated successfully");
             }
         } catch (err) {
             setError("Failed to update role");
         }
     };
 
+    const showAlert = (msg) => {
+        setSuccess(msg);
+        setTimeout(() => setSuccess(""), 3000);
+    };
+
     const filteredUsers =
-        filterRole === "ALL"
-            ? users
-            : users.filter((u) => u.role === filterRole);
+        filterRole === "ALL" ? users : users.filter((u) => u.role === filterRole);
 
     const roleColors = {
         ROLE_ADMIN: "bg-purple-100 text-purple-700 border-purple-200",
@@ -83,35 +75,7 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-slate-50">
-            {/* Navbar */}
-            <nav className="bg-white border-b border-slate-200 px-6 py-4">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-teal-600 rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
-                        </div>
-                        <span className="text-lg font-bold text-slate-800">MediCare HMS</span>
-                        <span className="px-3 py-1 rounded-full text-sm font-medium border bg-purple-100 text-purple-700 border-purple-200">
-              Admin Panel
-            </span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="text-right hidden sm:block">
-                            <p className="text-sm font-medium text-slate-800">{user?.username}</p>
-                            <p className="text-xs text-slate-500">{user?.email}</p>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                        >
-                            Sign Out
-                        </button>
-                    </div>
-                </div>
-            </nav>
-
+            <Navbar />
             <main className="max-w-7xl mx-auto px-6 py-8">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
@@ -134,6 +98,7 @@ export default function AdminDashboard() {
                 {error && (
                     <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                         {error}
+                        <button onClick={() => setError("")} className="float-right font-bold">&times;</button>
                     </div>
                 )}
                 {success && (
@@ -142,22 +107,50 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
+                {/* Quick Action - Manage Users */}
+                <div className="mb-8">
+                    <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Quick Actions</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div
+                            onClick={() => setShowCreateModal(true)}
+                            className="p-5 rounded-xl border-2 border-purple-100 bg-purple-50 hover:border-purple-300 cursor-pointer transition-all hover:shadow-md"
+                        >
+                            <span className="text-2xl">👤</span>
+                            <h3 className="text-base font-semibold text-slate-800 mt-2">Create User</h3>
+                            <p className="text-sm text-slate-500 mt-1">Add admin, doctor, or receptionist</p>
+                        </div>
+                        <div className="p-5 rounded-xl border-2 border-slate-100 bg-white cursor-default">
+                            <span className="text-2xl">📊</span>
+                            <h3 className="text-base font-semibold text-slate-800 mt-2">System Stats</h3>
+                            <p className="text-sm text-slate-500 mt-1">{users.length} total users registered</p>
+                        </div>
+                        <div className="p-5 rounded-xl border-2 border-slate-100 bg-white cursor-default">
+                            <span className="text-2xl">🔒</span>
+                            <h3 className="text-base font-semibold text-slate-800 mt-2">Access Control</h3>
+                            <p className="text-sm text-slate-500 mt-1">Manage roles and permissions</p>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     {[
-                        { label: "Total Users", count: users.length, color: "teal" },
-                        { label: "Doctors", count: users.filter((u) => u.role === "ROLE_DOCTOR").length, color: "blue" },
-                        { label: "Receptionists", count: users.filter((u) => u.role === "ROLE_RECEPTIONIST").length, color: "amber" },
-                        { label: "Patients", count: users.filter((u) => u.role === "ROLE_PATIENT").length, color: "emerald" },
+                        { label: "Total Users", count: users.length, icon: "👥" },
+                        { label: "Doctors", count: users.filter((u) => u.role === "ROLE_DOCTOR").length, icon: "🩺" },
+                        { label: "Receptionists", count: users.filter((u) => u.role === "ROLE_RECEPTIONIST").length, icon: "🏥" },
+                        { label: "Patients", count: users.filter((u) => u.role === "ROLE_PATIENT").length, icon: "🧑" },
                     ].map((stat, i) => (
                         <div key={i} className="bg-white rounded-xl border border-slate-200 p-4">
-                            <p className="text-sm text-slate-500">{stat.label}</p>
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm text-slate-500">{stat.label}</p>
+                                <span className="text-lg">{stat.icon}</span>
+                            </div>
                             <p className="text-2xl font-bold text-slate-800 mt-1">{stat.count}</p>
                         </div>
                     ))}
                 </div>
 
-                {/* Filter */}
+                {/* Filter Tabs */}
                 <div className="flex gap-2 mb-6 flex-wrap">
                     {["ALL", "ROLE_ADMIN", "ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_PATIENT"].map((role) => (
                         <button
@@ -169,7 +162,7 @@ export default function AdminDashboard() {
                                     : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
                             }`}
                         >
-                            {role === "ALL" ? "All" : roleLabels[role] || role}
+                            {role === "ALL" ? "All" : roleLabels[role]}
                         </button>
                     ))}
                 </div>
@@ -198,12 +191,8 @@ export default function AdminDashboard() {
                                 {filteredUsers.map((u) => (
                                     <tr key={u.id} className="hover:bg-slate-50">
                                         <td className="px-6 py-4">
-                                            <div>
-                                                <p className="text-sm font-medium text-slate-800">
-                                                    {u.firstName} {u.lastName}
-                                                </p>
-                                                <p className="text-xs text-slate-500">@{u.username}</p>
-                                            </div>
+                                            <p className="text-sm font-medium text-slate-800">{u.firstName} {u.lastName}</p>
+                                            <p className="text-xs text-slate-500">@{u.username}</p>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-slate-600">{u.email}</td>
                                         <td className="px-6 py-4">
@@ -219,24 +208,14 @@ export default function AdminDashboard() {
                                             </select>
                                         </td>
                                         <td className="px-6 py-4">
-                        <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                u.enabled
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-red-100 text-red-700"
-                            }`}
-                        >
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${u.enabled ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
                           {u.enabled ? "Active" : "Disabled"}
                         </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <button
                                                 onClick={() => handleToggleStatus(u.id)}
-                                                className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
-                                                    u.enabled
-                                                        ? "text-red-600 hover:bg-red-50"
-                                                        : "text-emerald-600 hover:bg-emerald-50"
-                                                }`}
+                                                className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${u.enabled ? "text-red-600 hover:bg-red-50" : "text-emerald-600 hover:bg-emerald-50"}`}
                                             >
                                                 {u.enabled ? "Disable" : "Enable"}
                                             </button>
@@ -257,26 +236,35 @@ export default function AdminDashboard() {
                     onCreated={(newUser) => {
                         setUsers([...users, newUser]);
                         setShowCreateModal(false);
-                        setSuccess("User created successfully");
-                        setTimeout(() => setSuccess(""), 3000);
+                        showAlert("User created successfully");
                     }}
+                    allowedRoles={["ROLE_ADMIN", "ROLE_DOCTOR", "ROLE_RECEPTIONIST"]}
+                    apiCall={adminService.createUser}
                 />
             )}
         </div>
     );
 }
 
-function CreateUserModal({ onClose, onCreated }) {
+// Shared modal — also used by ReceptionistDashboard
+export function CreateUserModal({ onClose, onCreated, allowedRoles, apiCall }) {
     const [formData, setFormData] = useState({
         username: "",
         email: "",
         password: "",
         firstName: "",
         lastName: "",
-        role: "ROLE_DOCTOR",
+        role: allowedRoles[0],
     });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    const roleLabels = {
+        ROLE_ADMIN: "Admin",
+        ROLE_DOCTOR: "Doctor",
+        ROLE_RECEPTIONIST: "Receptionist",
+        ROLE_PATIENT: "Patient",
+    };
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -289,7 +277,7 @@ function CreateUserModal({ onClose, onCreated }) {
         setError("");
 
         try {
-            const response = await adminService.createUser(formData);
+            const response = await apiCall(formData);
             if (response.success) {
                 onCreated(response.data);
             } else {
@@ -316,97 +304,54 @@ function CreateUserModal({ onClose, onCreated }) {
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                            {error}
-                        </div>
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
                     )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1.5">First Name</label>
-                            <input
-                                name="firstName"
-                                type="text"
-                                required
-                                value={formData.firstName}
-                                onChange={handleChange}
-                                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                            />
+                            <input name="firstName" type="text" required value={formData.firstName} onChange={handleChange}
+                                   className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1.5">Last Name</label>
-                            <input
-                                name="lastName"
-                                type="text"
-                                required
-                                value={formData.lastName}
-                                onChange={handleChange}
-                                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                            />
+                            <input name="lastName" type="text" required value={formData.lastName} onChange={handleChange}
+                                   className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
                         </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
-                        <input
-                            name="username"
-                            type="text"
-                            required
-                            value={formData.username}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                        />
+                        <input name="username" type="text" required value={formData.username} onChange={handleChange}
+                               className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
-                        <input
-                            name="email"
-                            type="email"
-                            required
-                            value={formData.email}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                        />
+                        <input name="email" type="email" required value={formData.email} onChange={handleChange}
+                               className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
-                        <input
-                            name="password"
-                            type="password"
-                            required
-                            value={formData.password}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                        />
+                        <input name="password" type="password" required value={formData.password} onChange={handleChange}
+                               className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
-                        <select
-                            name="role"
-                            value={formData.role}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                        >
-                            <option value="ROLE_ADMIN">Admin</option>
-                            <option value="ROLE_DOCTOR">Doctor</option>
-                            <option value="ROLE_RECEPTIONIST">Receptionist</option>
-                            <option value="ROLE_PATIENT">Patient</option>
+                        <select name="role" value={formData.role} onChange={handleChange}
+                                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
+                            {allowedRoles.map((r) => (
+                                <option key={r} value={r}>{roleLabels[r]}</option>
+                            ))}
                         </select>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
+                    <button type="submit" disabled={loading}
+                            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                         {loading ? (
-                            <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                                Creating...
-                            </>
+                            <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Creating...</>
                         ) : (
                             "Create User"
                         )}
