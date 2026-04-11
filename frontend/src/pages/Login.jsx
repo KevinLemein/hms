@@ -26,7 +26,15 @@ export default function Login() {
         try {
             const response = await login(formData);
             if (response.success) {
-                navigate(from, { replace: true });
+                // Navigate directly to the role-specific dashboard
+                const roleRoutes = {
+                    ROLE_ADMIN: "/admin",
+                    ROLE_DOCTOR: "/doctor",
+                    ROLE_RECEPTIONIST: "/receptionist",
+                    ROLE_PATIENT: "/patient",
+                };
+                const destination = roleRoutes[response.data.role] || "/dashboard";
+                navigate(destination, { replace: true });
             } else {
                 setError(response.message || "Login failed");
             }
