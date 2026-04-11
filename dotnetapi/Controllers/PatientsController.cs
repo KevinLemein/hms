@@ -9,27 +9,20 @@ namespace MediCare.Controllers
     [Route("api/[controller]")]
     [AllowAnonymous]
     [ApiController]
-    public class PatientsController : ControllerBase
+    public class PatientsController(ApplicationDbContext context) : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-
-        public PatientsController(ApplicationDbContext context)
-        {
-            _context = context;
-        }
-
         // GET: api/Patients
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Patient>>> GetPatient()
         {
-            return await _context.Patient.ToListAsync();
+            return await context.Patient.ToListAsync();
         }
 
         // GET: api/Patients/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Patient>> GetPatient(int id)
         {
-            var patient = await _context.Patient.FindAsync(id);
+            var patient = await context.Patient.FindAsync(id);
 
             if (patient == null)
             {
@@ -49,11 +42,11 @@ namespace MediCare.Controllers
                 return BadRequest();
             }
 
-            _context.Entry(patient).State = EntityState.Modified;
+            context.Entry(patient).State = EntityState.Modified;
 
             try
             {
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -75,8 +68,8 @@ namespace MediCare.Controllers
         [HttpPost]
         public async Task<ActionResult<Patient>> PostPatient(Patient patient)
         {
-            _context.Patient.Add(patient);
-            await _context.SaveChangesAsync();
+            context.Patient.Add(patient);
+            await context.SaveChangesAsync();
 
             return CreatedAtAction("GetPatient", new { id = patient.Id }, patient);
         }
@@ -85,21 +78,21 @@ namespace MediCare.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePatient(int id)
         {
-            var patient = await _context.Patient.FindAsync(id);
+            var patient = await context.Patient.FindAsync(id);
             if (patient == null)
             {
                 return NotFound();
             }
 
-            _context.Patient.Remove(patient);
-            await _context.SaveChangesAsync();
+            context.Patient.Remove(patient);
+            await context.SaveChangesAsync();
 
             return NoContent();
         }
 
         private bool PatientExists(int id)
         {
-            return _context.Patient.Any(e => e.Id == id);
+            return context.Patient.Any(e => e.Id == id);
         }
     }
 }
