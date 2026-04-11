@@ -84,9 +84,17 @@ public class AppointmentService {
     /**
      * Get all appointments
      */
+//    public List<AppointmentResponse> getAllAppointments() {
+//        return appointmentRepository.findAll()
+//                .stream()
+//                .map(this::mapToResponse)
+//                .collect(Collectors.toList());
+//    }
+
     public List<AppointmentResponse> getAllAppointments() {
         return appointmentRepository.findAll()
                 .stream()
+                .filter(a -> a.getDoctor() != null && a.getPatient() != null && a.getAppointmentStatus() != null)
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -126,11 +134,22 @@ public class AppointmentService {
     /**
      * Get today's appointments (all doctors)
      */
+//    public List<AppointmentResponse> getTodayAppointments() {
+//        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+//        LocalDateTime endOfDay = startOfDay.plusDays(1);
+//        return appointmentRepository.findByDateRange(startOfDay, endOfDay)
+//                .stream()
+//                .map(this::mapToResponse)
+//                .collect(Collectors.toList());
+//    }
+
+
     public List<AppointmentResponse> getTodayAppointments() {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
         return appointmentRepository.findByDateRange(startOfDay, endOfDay)
                 .stream()
+                .filter(a -> a.getDoctor() != null && a.getPatient() != null && a.getAppointmentStatus() != null)
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }

@@ -18,7 +18,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     List<Appointment> findByPatientIdOrderByAppointmentDateTimeDesc(Long patientId);
 
-    List<Appointment> findByStatus(AppointmentStatus appointmentStatus);
+    List<Appointment> findByAppointmentStatus(AppointmentStatus appointmentStatus);
 
     @Query("SELECT a FROM Appointment a WHERE a.doctor.id = :doctorId " +
             "AND a.appointmentDateTime BETWEEN :start AND :end " +

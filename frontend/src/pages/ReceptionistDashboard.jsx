@@ -14,13 +14,8 @@ export default function ReceptionistDashboard() {
     const [success, setSuccess] = useState("");
     const [credentialsModal, setCredentialsModal] = useState(null);
 
-    useEffect(() => {
-        fetchTodayAppointments();
-    }, []);
-
-    useEffect(() => {
-        if (activeTab === "patients") fetchPatients();
-    }, [activeTab]);
+    useEffect(() => { fetchTodayAppointments(); }, []);
+    useEffect(() => { if (activeTab === "patients") fetchPatients(); }, [activeTab]);
 
     const fetchPatients = async () => {
         setLoadingPatients(true);
@@ -34,7 +29,7 @@ export default function ReceptionistDashboard() {
     const fetchTodayAppointments = async () => {
         try {
             const response = await appointmentService.getToday();
-            if (response.success) setTodayAppointments(response.data);
+            if (response.success) setTodayAppointments(response.data.filter(a => a.appointmentStatus));
         } catch (err) { console.error(err); }
     };
 
@@ -57,15 +52,12 @@ export default function ReceptionistDashboard() {
         } catch (err) { console.error(err); }
     };
 
-    const showAlert = (msg) => {
-        setSuccess(msg);
-        setTimeout(() => setSuccess(""), 4000);
-    };
+    const showAlert = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(""), 4000); };
 
     const statusCounts = {
-        waiting: todayAppointments.filter(a => a.status === "WAITING").length,
-        inConsultation: todayAppointments.filter(a => a.status === "IN_CONSULTATION").length,
-        completed: todayAppointments.filter(a => a.status === "COMPLETED").length,
+        waiting: todayAppointments.filter(a => a.appointmentStatus === "WAITING").length,
+        inConsultation: todayAppointments.filter(a => a.appointmentStatus === "IN_CONSULTATION").length,
+        completed: todayAppointments.filter(a => a.appointmentStatus === "COMPLETED").length,
         total: todayAppointments.length,
     };
 
@@ -81,7 +73,6 @@ export default function ReceptionistDashboard() {
         <div className="min-h-screen bg-slate-50">
             <Navbar />
             <main className="max-w-7xl mx-auto px-6 py-8">
-                {/* Tabs */}
                 <div className="flex gap-1 mb-8 bg-white rounded-lg border border-slate-200 p-1 w-fit flex-wrap">
                     {tabs.map(tab => (
                         <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -95,14 +86,12 @@ export default function ReceptionistDashboard() {
                     <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm">{success}</div>
                 )}
 
-                {/* DASHBOARD TAB */}
                 {activeTab === "dashboard" && (
                     <>
                         <div className="mb-8">
                             <h1 className="text-2xl font-bold text-slate-800">Receptionist Dashboard</h1>
                             <p className="text-slate-500 mt-1">Manage patients and appointments</p>
                         </div>
-
                         <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Quick Actions</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
                             {[
@@ -116,7 +105,6 @@ export default function ReceptionistDashboard() {
                                 </div>
                             ))}
                         </div>
-
                         <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Today's Overview</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {[
@@ -136,7 +124,6 @@ export default function ReceptionistDashboard() {
                     </>
                 )}
 
-                {/* REGISTER PATIENT TAB */}
                 {activeTab === "register" && (
                     <RegisterPatientForm onSuccess={(patient) => {
                         setCredentialsModal(patient);
@@ -144,12 +131,9 @@ export default function ReceptionistDashboard() {
                     }} />
                 )}
 
-                {/* PATIENT LIST TAB */}
                 {activeTab === "patients" && (
                     <>
-                        <div className="mb-6">
-                            <h1 className="text-2xl font-bold text-slate-800">Patient Records</h1>
-                        </div>
+                        <div className="mb-6"><h1 className="text-2xl font-bold text-slate-800">Patient Records</h1></div>
                         <form onSubmit={handleSearch} className="mb-6 flex gap-3">
                             <input type="text" value={searchQuery}
                                    onChange={(e) => { setSearchQuery(e.target.value); if (!e.target.value.trim()) setSearchResults(null); }}
@@ -167,23 +151,12 @@ export default function ReceptionistDashboard() {
                     </>
                 )}
 
-                {/* BOOK APPOINTMENT TAB */}
                 {activeTab === "book" && (
-                    <BookAppointmentForm onSuccess={() => {
-                        showAlert("Appointment booked successfully");
-                        fetchTodayAppointments();
-                    }} />
+                    <BookAppointmentForm onSuccess={() => { showAlert("Appointment booked successfully"); fetchTodayAppointments(); }} />
                 )}
 
-                {/* APPOINTMENTS TAB */}
                 {activeTab === "appointments" && (
-                    <>
-                        <div className="mb-6">
-                            <h1 className="text-2xl font-bold text-slate-800">Today's Appointments</h1>
-                            <p className="text-slate-500 mt-1">{todayAppointments.length} appointments scheduled</p>
-                        </div>
-                        <AppointmentTable appointments={todayAppointments} onStatusUpdate={handleStatusUpdate} />
-                    </>
+                    <AppointmentsView onStatusUpdate={handleStatusUpdate} />
                 )}
 
                 {credentialsModal && <CredentialsModal patient={credentialsModal} onClose={() => setCredentialsModal(null)} />}
@@ -192,7 +165,45 @@ export default function ReceptionistDashboard() {
     );
 }
 
-// ========== BOOK APPOINTMENT FORM ==========
+function AppointmentsView({ onStatusUpdate }) {
+    const [filter, setFilter] = useState("today");
+    const [appointments, setAppointments] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => { fetchAppointments(); }, [filter]);
+
+    const fetchAppointments = async () => {
+        setLoading(true);
+        try {
+            const response = filter === "today" ? await appointmentService.getToday() : await appointmentService.getAll();
+            if (response.success) setAppointments(response.data.filter(a => a.appointmentStatus));
+        } catch (err) { console.error(err); }
+        finally { setLoading(false); }
+    };
+
+    return (
+        <>
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800">Appointments</h1>
+                    <p className="text-slate-500 mt-1">{appointments.length} appointments</p>
+                </div>
+                <div className="flex gap-2">
+                    <button onClick={() => setFilter("today")}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === "today" ? "bg-teal-600 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>Today</button>
+                    <button onClick={() => setFilter("all")}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === "all" ? "bg-teal-600 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>All</button>
+                </div>
+            </div>
+            {loading ? (
+                <div className="p-8 text-center"><div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-600 border-t-transparent mx-auto" /></div>
+            ) : (
+                <AppointmentTable appointments={appointments} onStatusUpdate={onStatusUpdate} />
+            )}
+        </>
+    );
+}
+
 function BookAppointmentForm({ onSuccess }) {
     const [formData, setFormData] = useState({ patientId: "", doctorId: "", appointmentDateTime: "", reason: "" });
     const [patients, setPatients] = useState([]);
@@ -202,16 +213,11 @@ function BookAppointmentForm({ onSuccess }) {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    useEffect(() => { loadData(); }, []);
 
     const loadData = async () => {
         try {
-            const [pRes, dRes] = await Promise.all([
-                patientService.getAllPatients(),
-                receptionistService.getDoctors(),
-            ]);
+            const [pRes, dRes] = await Promise.all([patientService.getAllPatients(), receptionistService.getDoctors()]);
             if (pRes.success) setPatients(pRes.data);
             if (dRes.success) setDoctors(dRes.data);
         } catch (err) { console.error(err); }
@@ -222,28 +228,25 @@ function BookAppointmentForm({ onSuccess }) {
             setFilteredPatients(patients.filter(p =>
                 `${p.firstName} ${p.lastName} ${p.email} ${p.phoneNumber}`.toLowerCase().includes(patientSearch.toLowerCase())
             ));
-        } else {
-            setFilteredPatients([]);
-        }
+        } else { setFilteredPatients([]); }
     }, [patientSearch, patients]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.patientId) { setError("Please select a patient"); return; }
         if (!formData.doctorId) { setError("Please select a doctor"); return; }
+        if (!formData.appointmentDateTime) { setError("Please select a date and time"); return; }
         setLoading(true); setError("");
         try {
+            let dateTime = formData.appointmentDateTime;
+            if (dateTime && dateTime.split(":").length === 2) dateTime = dateTime + ":00";
             const response = await appointmentService.book({
-                ...formData,
-                patientId: Number(formData.patientId),
-                doctorId: Number(formData.doctorId),
+                patientId: Number(formData.patientId), doctorId: Number(formData.doctorId),
+                appointmentDateTime: dateTime, reason: formData.reason,
             });
-            if (response.success) {
-                onSuccess();
-                setFormData({ patientId: "", doctorId: "", appointmentDateTime: "", reason: "" });
-                setPatientSearch("");
-            } else { setError(response.message); }
-        } catch (err) { setError(err.response?.data?.message || "Failed to book appointment"); }
+            if (response.success) { onSuccess(); setFormData({ patientId: "", doctorId: "", appointmentDateTime: "", reason: "" }); setPatientSearch(""); }
+            else { setError(response.message); }
+        } catch (err) { console.error("Booking error:", err); setError(err.response?.data?.message || "Failed to book appointment"); }
         finally { setLoading(false); }
     };
 
@@ -259,7 +262,6 @@ function BookAppointmentForm({ onSuccess }) {
             <div className="bg-white rounded-xl border border-slate-200 p-6">
                 {error && <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Patient Search */}
                     <div>
                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Select Patient</h3>
                         {selectedPatient ? (
@@ -289,36 +291,23 @@ function BookAppointmentForm({ onSuccess }) {
                             </div>
                         )}
                     </div>
-
-                    {/* Doctor Select */}
                     <div>
                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Select Doctor</h3>
-                        <select name="doctorId" value={formData.doctorId} onChange={(e) => setFormData({ ...formData, doctorId: e.target.value })}
-                                required className={inputClass}>
+                        <select name="doctorId" value={formData.doctorId} onChange={(e) => setFormData({ ...formData, doctorId: e.target.value })} required className={inputClass}>
                             <option value="">-- Select a Doctor --</option>
-                            {doctors.map(d => (
-                                <option key={d.id} value={d.id}>Dr. {d.firstName} {d.lastName}</option>
-                            ))}
+                            {doctors.map(d => (<option key={d.id} value={d.id}>Dr. {d.firstName} {d.lastName}</option>))}
                         </select>
                     </div>
-
-                    {/* Date/Time */}
                     <div>
                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Date & Time</h3>
                         <input type="datetime-local" name="appointmentDateTime" value={formData.appointmentDateTime}
-                               onChange={(e) => setFormData({ ...formData, appointmentDateTime: e.target.value })}
-                               required className={inputClass} />
+                               onChange={(e) => setFormData({ ...formData, appointmentDateTime: e.target.value })} required className={inputClass} />
                     </div>
-
-                    {/* Reason */}
                     <div>
                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Reason for Visit</h3>
-                        <textarea name="reason" value={formData.reason}
-                                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                                  rows={3} placeholder="e.g. General checkup, follow-up, headache..."
-                                  className={inputClass + " resize-none"} />
+                        <textarea name="reason" value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                                  rows={3} placeholder="e.g. General checkup, follow-up, headache..." className={inputClass + " resize-none"} />
                     </div>
-
                     <button type="submit" disabled={loading}
                             className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-8 py-2.5 rounded-lg transition-all disabled:opacity-50 flex items-center gap-2">
                         {loading ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Booking...</> : "Book Appointment"}
@@ -329,8 +318,9 @@ function BookAppointmentForm({ onSuccess }) {
     );
 }
 
-// ========== APPOINTMENT TABLE ==========
+
 function AppointmentTable({ appointments, onStatusUpdate }) {
+    // Map status to color
     const statusColors = {
         PENDING: "bg-slate-100 text-slate-700",
         WAITING: "bg-amber-100 text-amber-700",
@@ -340,13 +330,14 @@ function AppointmentTable({ appointments, onStatusUpdate }) {
         NO_SHOW: "bg-gray-100 text-gray-700",
     };
 
+    // Map possible actions for each status
     const statusActions = {
         PENDING: [{ label: "Check In", next: "WAITING" }, { label: "Cancel", next: "CANCELLED" }],
         WAITING: [{ label: "Start Consultation", next: "IN_CONSULTATION" }, { label: "No Show", next: "NO_SHOW" }],
         IN_CONSULTATION: [{ label: "Complete", next: "COMPLETED" }],
     };
 
-    if (appointments.length === 0) {
+    if (!appointments || appointments.length === 0) {
         return <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">No appointments found</div>;
     }
 
@@ -356,6 +347,7 @@ function AppointmentTable({ appointments, onStatusUpdate }) {
                 <table className="w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
+                        <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Date</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Time</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Patient</th>
                         <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Doctor</th>
@@ -365,34 +357,45 @@ function AppointmentTable({ appointments, onStatusUpdate }) {
                     </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                    {appointments.map(a => (
-                        <tr key={a.id} className="hover:bg-slate-50">
-                            <td className="px-6 py-4 text-sm text-slate-800 font-medium whitespace-nowrap">
-                                {new Date(a.appointmentDateTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </td>
-                            <td className="px-6 py-4">
-                                <p className="text-sm font-medium text-slate-800">{a.patientFirstName} {a.patientLastName}</p>
-                                <p className="text-xs text-slate-500">{a.patientPhone}</p>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-slate-600">Dr. {a.doctorFirstName} {a.doctorLastName}</td>
-                            <td className="px-6 py-4 text-sm text-slate-600 max-w-[200px] truncate">{a.reason || "—"}</td>
-                            <td className="px-6 py-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[a.status]}`}>
-                    {a.status.replace("_", " ")}
-                  </span>
-                            </td>
-                            <td className="px-6 py-4">
-                                <div className="flex gap-2">
-                                    {(statusActions[a.status] || []).map((action, i) => (
-                                        <button key={i} onClick={() => onStatusUpdate(a.id, action.next)}
-                                                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
-                                            {action.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
+                    {appointments.map(a => {
+                        // Normalize status to uppercase for consistency
+                        const normalizedStatus = a.appointmentStatus ? a.appointmentStatus.toUpperCase() : "UNKNOWN";
+                        return (
+                            <tr key={a.id} className="hover:bg-slate-50">
+                                <td className="px-6 py-4 text-sm text-slate-800 font-medium whitespace-nowrap">
+                                    {a.appointmentDateTime
+                                        ? new Date(a.appointmentDateTime).toLocaleDateString([], { day: "2-digit", month: "short", year: "numeric" })
+                                        : "—"}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-slate-800 font-medium whitespace-nowrap">
+                                    {a.appointmentDateTime
+                                        ? new Date(a.appointmentDateTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                                        : "—"}
+                                </td>
+                                <td className="px-6 py-4">
+                                    <p className="text-sm font-medium text-slate-800">{a.patientFirstName} {a.patientLastName}</p>
+                                    <p className="text-xs text-slate-500">{a.patientPhone}</p>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-slate-600">Dr. {a.doctorFirstName} {a.doctorLastName}</td>
+                                <td className="px-6 py-4 text-sm text-slate-600 max-w-[200px] truncate">{a.reason || "—"}</td>
+                                <td className="px-6 py-4">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[normalizedStatus] || "bg-slate-100 text-slate-700"}`}>
+                                            {normalizedStatus.replace("_", " ")}
+                                        </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex gap-2">
+                                        {(statusActions[normalizedStatus] || []).map((action, i) => (
+                                            <button key={i} onClick={() => onStatusUpdate(a.id, action.next)}
+                                                    className="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all">
+                                                {action.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </td>
+                            </tr>
+                        );
+                    })}
                     </tbody>
                 </table>
             </div>
@@ -400,7 +403,6 @@ function AppointmentTable({ appointments, onStatusUpdate }) {
     );
 }
 
-// ========== REGISTER PATIENT FORM ==========
 function RegisterPatientForm({ onSuccess }) {
     const [formData, setFormData] = useState({
         firstName: "", lastName: "", email: "", phoneNumber: "",
@@ -471,7 +473,6 @@ function RegisterPatientForm({ onSuccess }) {
     );
 }
 
-// ========== PATIENT TABLE ==========
 function PatientTable({ patients }) {
     if (patients.length === 0) return <div className="p-8 text-center text-slate-500">No patients found</div>;
     return (
@@ -502,7 +503,6 @@ function PatientTable({ patients }) {
     );
 }
 
-// ========== CREDENTIALS MODAL ==========
 function CredentialsModal({ patient, onClose }) {
     const [copied, setCopied] = useState(false);
     const handleCopy = () => {
