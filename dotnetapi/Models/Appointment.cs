@@ -41,6 +41,7 @@ namespace Business.Entities
         public long DoctorId { get; set; }
         [JsonIgnore]
         public Doctor Doctor { get; set; }
+        public string Notes { get; set; }
     }
     public class MedicalRecord : CreateFields
     {

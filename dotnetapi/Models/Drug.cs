@@ -6,5 +6,6 @@ namespace Business.Entities
         public string Name { get; set; }
         public int? ManufacturerId { get; set; }
         public string Milligrams { get; set; }
+        public decimal? Cost { get; set; }
     }
 }
