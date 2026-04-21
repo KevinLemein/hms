@@ -250,8 +250,6 @@ export default function DoctorDashboard() {
                         })}
                     />
                 )}
-
-                {/* ==================== PRESCRIPTIONS TAB ==================== */}
                 {activeTab === "prescriptions" && (
                     <>
                         <div className="flex items-center justify-between mb-6">
@@ -259,15 +257,17 @@ export default function DoctorDashboard() {
                                 <h1 className="text-2xl font-bold text-slate-800">Prescriptions</h1>
                                 <p className="text-slate-500 mt-1">{prescriptions.length} prescriptions</p>
                             </div>
-                            <button
-                                onClick={() => setShowPrescriptionModal({ patientId: "", patientName: "", appointmentId: "" })}
-                                className="bg-violet-600 hover:bg-violet-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-all flex items-center gap-2"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                                New Prescription
-                            </button>
+                            {/*<button*/}
+                            {/*    onClick={() => setShowPrescriptionModal({ patientId: "", patientName: "", appointmentId: "" })}*/}
+                            {/*    className="bg-violet-600 hover:bg-violet-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-all flex items-center gap-2"*/}
+                            {/*>*/}
+                            {/*    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">*/}
+                            {/*        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />*/}
+                            {/*    </svg>*/}
+                            {/*    New Prescription*/}
+                            {/*</button>*/}
+
+
                         </div>
                         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                             {prescriptions.length === 0 ? (
@@ -318,7 +318,6 @@ export default function DoctorDashboard() {
                     </>
                 )}
 
-                {/* ==================== PRESCRIPTION MODAL ==================== */}
                 {showPrescriptionModal && (
                     <PrescriptionModal
                         prefill={showPrescriptionModal}
@@ -333,9 +332,6 @@ export default function DoctorDashboard() {
     );
 }
 
-/* ================================================================
-   ALL APPOINTMENTS VIEW
-   ================================================================ */
 function AllAppointmentsView({ appointments, statusColors, prescriptions, onPrescribe }) {
     const [filter, setFilter] = useState("all");
     const filtered = filter === "all" ? appointments : appointments.filter(a => a.appointmentStatus === filter);
@@ -448,9 +444,6 @@ function AllAppointmentsView({ appointments, statusColors, prescriptions, onPres
     );
 }
 
-/* ================================================================
-   PRESCRIPTION MODAL
-   ================================================================ */
 function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
     const [patients, setPatients] = useState([]);
     const [patientSearch, setPatientSearch] = useState(prefill.patientName || "");
@@ -506,12 +499,13 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
         if (!formData.drugId) { setError("Please select a drug"); return; }
         if (!formData.dosage) { setError("Dosage is required"); return; }
         if (!formData.duration) { setError("Duration is required"); return; }
+        if (!prefill.appointmentId) { setError("No appointment linked. Please prescribe from the All Appointments tab."); return; }
 
         setLoading(true);
         setError("");
         try {
             await prescriptionService.create({
-                appointmentId: prefill.appointmentId || 0,
+                    appointmentId: prefill.appointmentId,
                 drugId: Number(formData.drugId),
                 dossage: Number(formData.dosage),
                 duration: formData.duration,

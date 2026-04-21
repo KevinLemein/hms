@@ -403,38 +403,152 @@ function AppointmentTable({ appointments, onStatusUpdate }) {
     );
 }
 
+// function RegisterPatientForm({ onSuccess }) {
+//     const [formData, setFormData] = useState({
+//         firstName: "", lastName: "", email: "", phoneNumber: "",
+//         dateOfBirth: "", gender: "MALE", address: "",
+//         emergencyContactName: "", emergencyContactPhone: "", allergies: "",
+//     });
+//     const [error, setError] = useState("");
+//     const [loading, setLoading] = useState(false);
+//     const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }); if (error) setError(""); };
+//     const inputClass = "w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent";
+//
+//     const handleSubmit = async (e) => {
+//         e.preventDefault(); setLoading(true); setError("");
+//         try {
+//             const response = await patientService.registerPatient(formData);
+//             if (response.success) {
+//                 onSuccess(response.data);
+//                 setFormData({ firstName: "", lastName: "", email: "", phoneNumber: "", dateOfBirth: "", gender: "MALE", address: "", emergencyContactName: "", emergencyContactPhone: "", allergies: "" });
+//             } else { setError(response.message); }
+//         } catch (err) { setError(err.response?.data?.message || "Failed to register patient"); }
+//         finally { setLoading(false); }
+//     };
+//
+//     return (
+//         <>
+//             <div className="mb-6">
+//                 <h1 className="text-2xl font-bold text-slate-800">Register New Patient</h1>
+//                 <p className="text-slate-500 mt-1">A login password will be auto-generated.</p>
+//             </div>
+//             <div className="bg-white rounded-xl border border-slate-200 p-6">
+//                 {error && <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
+//                 <form onSubmit={handleSubmit} className="space-y-6">
+//                     <div>
+//                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Personal Information</h3>
+//                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">First Name *</label><input name="firstName" required value={formData.firstName} onChange={handleChange} className={inputClass} /></div>
+//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Last Name *</label><input name="lastName" required value={formData.lastName} onChange={handleChange} className={inputClass} /></div>
+//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Email *</label><input name="email" type="email" required value={formData.email} onChange={handleChange} className={inputClass} /></div>
+//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Phone *</label><input name="phoneNumber" type="tel" required value={formData.phoneNumber} onChange={handleChange} placeholder="0712345678" className={inputClass} /></div>
+//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Date of Birth *</label><input name="dateOfBirth" type="date" required value={formData.dateOfBirth} onChange={handleChange} className={inputClass} /></div>
+//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Gender *</label>
+//                                 <select name="gender" value={formData.gender} onChange={handleChange} className={inputClass}>
+//                                     <option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option>
+//                                 </select>
+//                             </div>
+//                         </div>
+//                     </div>
+//                     <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Address *</label><input name="address" required value={formData.address} onChange={handleChange} placeholder="e.g. Westlands, Nairobi" className={inputClass} /></div>
+//                     <div>
+//                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Emergency Contact</h3>
+//                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Contact Name</label><input name="emergencyContactName" value={formData.emergencyContactName} onChange={handleChange} className={inputClass} /></div>
+//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Contact Phone</label><input name="emergencyContactPhone" type="tel" value={formData.emergencyContactPhone} onChange={handleChange} className={inputClass} /></div>
+//                         </div>
+//                     </div>
+//                     <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Known Allergies</label>
+//                         <textarea name="allergies" value={formData.allergies} onChange={handleChange} rows={3} placeholder="e.g. Penicillin, Peanuts..." className={inputClass + " resize-none"} /></div>
+//                     <div className="flex gap-3">
+//                         <button type="submit" disabled={loading} className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-8 py-2.5 rounded-lg disabled:opacity-50 flex items-center gap-2">
+//                             {loading ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Registering...</> : "Register Patient"}
+//                         </button>
+//                         <button type="reset" onClick={() => setFormData({ firstName: "", lastName: "", email: "", phoneNumber: "", dateOfBirth: "", gender: "MALE", address: "", emergencyContactName: "", emergencyContactPhone: "", allergies: "" })}
+//                                 className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg">Clear</button>
+//                     </div>
+//                 </form>
+//             </div>
+//         </>
+//     );
+// }
+
 function RegisterPatientForm({ onSuccess }) {
     const [formData, setFormData] = useState({
         firstName: "", lastName: "", email: "", phoneNumber: "",
         dateOfBirth: "", gender: "MALE", address: "",
         emergencyContactName: "", emergencyContactPhone: "", allergies: "",
     });
+    const [appointmentData, setAppointmentData] = useState({
+        doctorId: "", appointmentDateTime: "", reason: "",
+    });
+    const [doctors, setDoctors] = useState([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const loadDoctors = async () => {
+            try {
+                const res = await receptionistService.getDoctors();
+                if (res.success) setDoctors(res.data);
+            } catch (err) { console.error(err); }
+        };
+        loadDoctors();
+    }, []);
+
     const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }); if (error) setError(""); };
+    const handleAppointmentChange = (e) => { setAppointmentData({ ...appointmentData, [e.target.name]: e.target.value }); if (error) setError(""); };
+
     const inputClass = "w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent";
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); setLoading(true); setError("");
+        e.preventDefault();
+        if (!appointmentData.doctorId) { setError("Please assign a doctor"); return; }
+        if (!appointmentData.appointmentDateTime) { setError("Please select an appointment date & time"); return; }
+
+        setLoading(true); setError("");
         try {
-            const response = await patientService.registerPatient(formData);
-            if (response.success) {
-                onSuccess(response.data);
-                setFormData({ firstName: "", lastName: "", email: "", phoneNumber: "", dateOfBirth: "", gender: "MALE", address: "", emergencyContactName: "", emergencyContactPhone: "", allergies: "" });
-            } else { setError(response.message); }
-        } catch (err) { setError(err.response?.data?.message || "Failed to register patient"); }
-        finally { setLoading(false); }
+            // Step 1: Register patient
+            const patientRes = await patientService.registerPatient(formData);
+            if (!patientRes.success) { setError(patientRes.message); setLoading(false); return; }
+
+            const patient = patientRes.data;
+
+            // Step 2: Book appointment with the newly created patient
+            let dateTime = appointmentData.appointmentDateTime;
+            if (dateTime && dateTime.split(":").length === 2) dateTime = dateTime + ":00";
+
+            const appointmentRes = await appointmentService.book({
+                patientId: patient.id,
+                doctorId: Number(appointmentData.doctorId),
+                appointmentDateTime: dateTime,
+                reason: appointmentData.reason,
+            });
+
+            if (!appointmentRes.success) {
+                // Patient was created but appointment failed — still show credentials
+                setError("Patient registered but appointment booking failed: " + appointmentRes.message);
+            }
+
+            onSuccess(patient);
+            setFormData({ firstName: "", lastName: "", email: "", phoneNumber: "", dateOfBirth: "", gender: "MALE", address: "", emergencyContactName: "", emergencyContactPhone: "", allergies: "" });
+            setAppointmentData({ doctorId: "", appointmentDateTime: "", reason: "" });
+        } catch (err) {
+            console.error(err);
+            setError(err.response?.data?.message || "Failed to register patient");
+        } finally { setLoading(false); }
     };
 
     return (
         <>
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-800">Register New Patient</h1>
-                <p className="text-slate-500 mt-1">A login password will be auto-generated.</p>
+                <p className="text-slate-500 mt-1">Register patient, assign a doctor, and book their first appointment.</p>
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-6">
                 {error && <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Personal Information */}
                     <div>
                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Personal Information</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -450,7 +564,10 @@ function RegisterPatientForm({ onSuccess }) {
                             </div>
                         </div>
                     </div>
+
                     <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Address *</label><input name="address" required value={formData.address} onChange={handleChange} placeholder="e.g. Westlands, Nairobi" className={inputClass} /></div>
+
+                    {/* Emergency Contact */}
                     <div>
                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Emergency Contact</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -458,14 +575,41 @@ function RegisterPatientForm({ onSuccess }) {
                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Contact Phone</label><input name="emergencyContactPhone" type="tel" value={formData.emergencyContactPhone} onChange={handleChange} className={inputClass} /></div>
                         </div>
                     </div>
+
                     <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Known Allergies</label>
                         <textarea name="allergies" value={formData.allergies} onChange={handleChange} rows={3} placeholder="e.g. Penicillin, Peanuts..." className={inputClass + " resize-none"} /></div>
+
+                    {/* Assign Doctor & Appointment */}
+                    <div>
+                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Assign Doctor & Appointment</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Doctor *</label>
+                                <select name="doctorId" value={appointmentData.doctorId} onChange={handleAppointmentChange} required className={inputClass}>
+                                    <option value="">-- Select a Doctor --</option>
+                                    {doctors.map(d => (<option key={d.id} value={d.id}>Dr. {d.firstName} {d.lastName}</option>))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Appointment Date & Time *</label>
+                                <input type="datetime-local" name="appointmentDateTime" value={appointmentData.appointmentDateTime} onChange={handleAppointmentChange} required className={inputClass} />
+                            </div>
+                        </div>
+                        <div className="mt-4">
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Reason for Visit</label>
+                            <textarea name="reason" value={appointmentData.reason} onChange={handleAppointmentChange}
+                                      rows={3} placeholder="e.g. General checkup, follow-up, headache..." className={inputClass + " resize-none"} />
+                        </div>
+                    </div>
+
                     <div className="flex gap-3">
                         <button type="submit" disabled={loading} className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-8 py-2.5 rounded-lg disabled:opacity-50 flex items-center gap-2">
-                            {loading ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Registering...</> : "Register Patient"}
+                            {loading ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Registering...</> : "Register & Book Appointment"}
                         </button>
-                        <button type="reset" onClick={() => setFormData({ firstName: "", lastName: "", email: "", phoneNumber: "", dateOfBirth: "", gender: "MALE", address: "", emergencyContactName: "", emergencyContactPhone: "", allergies: "" })}
-                                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg">Clear</button>
+                        <button type="reset" onClick={() => {
+                            setFormData({ firstName: "", lastName: "", email: "", phoneNumber: "", dateOfBirth: "", gender: "MALE", address: "", emergencyContactName: "", emergencyContactPhone: "", allergies: "" });
+                            setAppointmentData({ doctorId: "", appointmentDateTime: "", reason: "" });
+                        }} className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg">Clear</button>
                     </div>
                 </form>
             </div>
