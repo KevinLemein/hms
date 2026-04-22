@@ -23,26 +23,7 @@ namespace Business.Entities
         public int Id { get; set; }
         public string Name { get; set; }
     }
-    public class Prescription
-    {
-        public long Id { get; set; }
-        public long? AppointmentId { get; set; }
-        [JsonIgnore]
-        public Appointment Appointment { get; set; }
-        
-        public int? DrugId { get; set; }
-        [JsonIgnore]
-        public Drug Drug { get; set; }
-        public string DrugName =>Drug?.Name;
-        public int Dossage { get; set; }
-        public string Duration { get; set; }
-        
-        public DateTime CreatedOn { get; set; }
-        public long DoctorId { get; set; }
-        [JsonIgnore]
-        public Doctor Doctor { get; set; }
-        public string Notes { get; set; }
-    }
+
     public class MedicalRecord : CreateFields
     {
         public long Id { get; set; }

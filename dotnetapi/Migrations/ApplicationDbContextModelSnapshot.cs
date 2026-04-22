@@ -162,6 +162,10 @@ namespace MediCare.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal?>("Cost")
+                        .HasColumnType("numeric")
+                        .HasColumnName("cost");
+
                     b.Property<int?>("ManufacturerId")
                         .HasColumnType("integer")
                         .HasColumnName("manufacturer_id");
@@ -173,6 +177,10 @@ namespace MediCare.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("text")
                         .HasColumnName("name");
+
+                    b.Property<int?>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
 
                     b.HasKey("Id")
                         .HasName("pk_drugs");
@@ -388,8 +396,8 @@ namespace MediCare.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("doctor_id");
 
-                    b.Property<int>("Dossage")
-                        .HasColumnType("integer")
+                    b.Property<string>("Dossage")
+                        .HasColumnType("text")
                         .HasColumnName("dossage");
 
                     b.Property<int?>("DrugId")
@@ -399,6 +407,14 @@ namespace MediCare.Migrations
                     b.Property<string>("Duration")
                         .HasColumnType("text")
                         .HasColumnName("duration");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<int?>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
 
                     b.HasKey("Id")
                         .HasName("pk_prescriptions");
