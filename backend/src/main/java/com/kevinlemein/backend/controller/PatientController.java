@@ -65,6 +65,20 @@ public class PatientController {
     }
 
     /**
+     * Get patient by user ID (for patient dashboard)
+     */
+    @GetMapping("/by-user/{userId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR', 'ROLE_PATIENT')")
+    public ResponseEntity<ApiResponse<PatientResponse>> getPatientByUserId(@PathVariable Long userId) {
+        try {
+            PatientResponse response = patientService.getPatientByUserId(userId);
+            return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    /**
      * Search patients by name, email, or phone
      */
     @GetMapping("/search")
