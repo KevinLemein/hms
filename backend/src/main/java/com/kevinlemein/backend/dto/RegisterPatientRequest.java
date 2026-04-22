@@ -25,12 +25,11 @@ public class RegisterPatientRequest {
     @Email(message = "Please provide a valid email address")
     private String email;
 
-    // Patient-specific fields
     @NotBlank(message = "Phone number is required")
     private String phoneNumber;
 
     @NotBlank(message = "Date of birth is required")
-    private String dateOfBirth; // ISO format: "1990-05-15"
+    private String dateOfBirth; 
 
     @NotNull(message = "Gender is required")
     private String gender;
