@@ -1,4 +1,4 @@
-services:
+Services:
   # ---- Spring Boot Backend ----
   backend:
     build:
