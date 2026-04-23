@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import appointmentService from "../api/appointmentService";
 import prescriptionService from "../api/prescriptionService";
 import patientService from "../api/patientService";
+import billService from "../api/billService";
 
 export default function DoctorDashboard() {
     const { user } = useAuth();
@@ -504,17 +505,35 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
         setLoading(true);
         setError("");
         try {
+
             await prescriptionService.create({
-                    appointmentId: prefill.appointmentId,
+                appointmentId: prefill.appointmentId,
                 drugId: Number(formData.drugId),
-                dossage: Number(formData.dosage),
+                dossage: formData.dosage,
                 duration: formData.duration,
                 notes: formData.notes,
                 doctorId: doctorId,
                 createdOn: new Date().toISOString(),
             });
+
+            // Step 2: Auto-generate bill via Spring Boot
+            const selectedDrug = drugs.find(d => d.id === Number(formData.drugId));
+            if (selectedDrug) {
+                try {
+                    await billService.createFromPrescription({
+                        appointmentId: prefill.appointmentId,
+                        drugName: `${selectedDrug.name} (${selectedDrug.milligrams})`,
+                        quantity: 1,
+                        unitPrice: selectedDrug.cost || 0,
+                        drugId: selectedDrug.id,
+                    });
+                } catch (billErr) {
+                    console.error("Bill creation failed (prescription was saved):", billErr);
+                }
+            }
             onCreated();
-        } catch (err) {
+            }
+            catch (err) {
             console.error("Prescription error:", err);
             setError(err.response?.data?.message || err.response?.data?.title || "Failed to create prescription");
         } finally {
@@ -607,7 +626,7 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Dosage</label>
                         <input
-                            type="number"
+                            type="text"
                             value={formData.dosage}
                             onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
                             required

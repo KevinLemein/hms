@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import patientService from "../api/patientService";
 import appointmentService from "../api/appointmentService";
 import prescriptionService from "../api/prescriptionService";
+import billService from "../api/billService";
 
 export default function PatientDashboard() {
     const { user } = useAuth();
@@ -13,6 +14,7 @@ export default function PatientDashboard() {
     const [prescriptions, setPrescriptions] = useState([]);
     const [drugs, setDrugs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [bills, setBills] = useState([]);
 
     useEffect(() => {
         loadPatientProfile();
@@ -22,6 +24,7 @@ export default function PatientDashboard() {
         if (!patient) return;
         if (activeTab === "appointments") fetchAppointments();
         if (activeTab === "prescriptions") fetchPrescriptions();
+        if (activeTab === "bills") fetchBills();
     }, [activeTab, patient]);
 
     const loadPatientProfile = async () => {
@@ -53,6 +56,14 @@ export default function PatientDashboard() {
             ]);
             setPrescriptions(Array.isArray(prescData) ? prescData : []);
             setDrugs(Array.isArray(drugsData) ? drugsData : []);
+        } catch (err) { console.error(err); }
+    };
+
+    const fetchBills = async () => {
+        if (!patient) return;
+        try {
+            const res = await billService.getByPatient(patient.id);
+            if (res.success) setBills(res.data);
         } catch (err) { console.error(err); }
     };
 
@@ -98,6 +109,7 @@ export default function PatientDashboard() {
                         { key: "dashboard", label: "Dashboard" },
                         { key: "appointments", label: "My Appointments" },
                         { key: "prescriptions", label: "My Prescriptions" },
+                        { key: "bills", label: "My Bills" },
                     ].map(tab => (
                         <button
                             key={tab.key}
@@ -291,6 +303,86 @@ export default function PatientDashboard() {
                                         </div>
                                     );
                                 })}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* ==================== BILLS ==================== */}
+                
+                {activeTab === "bills" && (
+                    <>
+                        <div className="mb-6">
+                            <h1 className="text-2xl font-bold text-slate-800">My Bills</h1>
+                            <p className="text-slate-500 mt-1">{bills.length} bills</p>
+                        </div>
+
+                        {bills.length === 0 ? (
+                            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
+                                No bills found.
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {bills.map(bill => (
+                                    <div key={bill.id} className="bg-white rounded-xl border border-slate-200 p-5">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div>
+                                                <p className="text-base font-semibold text-slate-800">
+                                                    Bill #{bill.id}
+                                                </p>
+                                                <p className="text-sm text-slate-500">
+                                                    {bill.createdAt ? new Date(bill.createdAt).toLocaleDateString([], { day: "2-digit", month: "long", year: "numeric" }) : "—"}
+                                                </p>
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                                bill.paymentStatus === "PAID"
+                                                    ? "bg-emerald-100 text-emerald-700"
+                                                    : "bg-amber-100 text-amber-700"
+                                            }`}>
+                                {bill.paymentStatus}
+                            </span>
+                                        </div>
+
+                                        {/* Line items */}
+                                        {bill.items && bill.items.length > 0 && (
+                                            <div className="border-t border-slate-100 pt-3 space-y-2">
+                                                {bill.items.map((item, i) => (
+                                                    <div key={i} className="flex items-center justify-between text-sm">
+                                        <span className="text-slate-600">
+                                            {item.description} × {item.quantity}
+                                        </span>
+                                                        <span className="text-slate-800 font-medium">
+                                            KES {item.totalPrice?.toFixed(2)}
+                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Total */}
+                                        <div className="border-t border-slate-200 mt-3 pt-3 flex items-center justify-between">
+                                            <span className="text-sm font-semibold text-slate-800">Total</span>
+                                            <span className="text-lg font-bold text-slate-800">
+                                KES {bill.totalAmount?.toFixed(2)}
+                            </span>
+                                        </div>
+
+                                        {/* Payment info if paid */}
+                                        {bill.paymentStatus === "PAID" && (
+                                            <div className="mt-3 bg-emerald-50 rounded-lg p-3 text-sm text-emerald-700">
+                                                Paid via {bill.paymentMethod}
+                                                {bill.paymentReference && ` — Ref: ${bill.paymentReference}`}
+                                                {bill.paidAt && ` — ${new Date(bill.paidAt).toLocaleDateString()}`}
+                                            </div>
+                                        )}
+
+                                        {bill.paymentStatus === "PENDING" && (
+                                            <div className="mt-3 bg-amber-50 rounded-lg p-3 text-sm text-amber-700">
+                                                Payment pending — please visit the reception desk to make your payment.
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </>

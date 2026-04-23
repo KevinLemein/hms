@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import patientService from "../api/patientService";
 import appointmentService from "../api/appointmentService";
 import receptionistService from "../api/receptionistService";
+import billService from "../api/billService";
 
 export default function ReceptionistDashboard() {
     const [activeTab, setActiveTab] = useState("dashboard");
@@ -67,6 +68,7 @@ export default function ReceptionistDashboard() {
         { key: "patients", label: "Patient List" },
         { key: "book", label: "Book Appointment" },
         { key: "appointments", label: "Appointments" },
+        { key: "billing", label: "Billing" },
     ];
 
     return (
@@ -160,6 +162,11 @@ export default function ReceptionistDashboard() {
                 )}
 
                 {credentialsModal && <CredentialsModal patient={credentialsModal} onClose={() => setCredentialsModal(null)} />}
+
+                {activeTab === "billing" && (
+                    <BillingView onAlert={showAlert} />
+                )}
+
             </main>
         </div>
     );
@@ -403,75 +410,373 @@ function AppointmentTable({ appointments, onStatusUpdate }) {
     );
 }
 
-// function RegisterPatientForm({ onSuccess }) {
-//     const [formData, setFormData] = useState({
-//         firstName: "", lastName: "", email: "", phoneNumber: "",
-//         dateOfBirth: "", gender: "MALE", address: "",
-//         emergencyContactName: "", emergencyContactPhone: "", allergies: "",
-//     });
-//     const [error, setError] = useState("");
-//     const [loading, setLoading] = useState(false);
-//     const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }); if (error) setError(""); };
-//     const inputClass = "w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent";
-//
-//     const handleSubmit = async (e) => {
-//         e.preventDefault(); setLoading(true); setError("");
-//         try {
-//             const response = await patientService.registerPatient(formData);
-//             if (response.success) {
-//                 onSuccess(response.data);
-//                 setFormData({ firstName: "", lastName: "", email: "", phoneNumber: "", dateOfBirth: "", gender: "MALE", address: "", emergencyContactName: "", emergencyContactPhone: "", allergies: "" });
-//             } else { setError(response.message); }
-//         } catch (err) { setError(err.response?.data?.message || "Failed to register patient"); }
-//         finally { setLoading(false); }
-//     };
-//
-//     return (
-//         <>
-//             <div className="mb-6">
-//                 <h1 className="text-2xl font-bold text-slate-800">Register New Patient</h1>
-//                 <p className="text-slate-500 mt-1">A login password will be auto-generated.</p>
-//             </div>
-//             <div className="bg-white rounded-xl border border-slate-200 p-6">
-//                 {error && <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
-//                 <form onSubmit={handleSubmit} className="space-y-6">
-//                     <div>
-//                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Personal Information</h3>
-//                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">First Name *</label><input name="firstName" required value={formData.firstName} onChange={handleChange} className={inputClass} /></div>
-//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Last Name *</label><input name="lastName" required value={formData.lastName} onChange={handleChange} className={inputClass} /></div>
-//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Email *</label><input name="email" type="email" required value={formData.email} onChange={handleChange} className={inputClass} /></div>
-//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Phone *</label><input name="phoneNumber" type="tel" required value={formData.phoneNumber} onChange={handleChange} placeholder="0712345678" className={inputClass} /></div>
-//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Date of Birth *</label><input name="dateOfBirth" type="date" required value={formData.dateOfBirth} onChange={handleChange} className={inputClass} /></div>
-//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Gender *</label>
-//                                 <select name="gender" value={formData.gender} onChange={handleChange} className={inputClass}>
-//                                     <option value="MALE">Male</option><option value="FEMALE">Female</option><option value="OTHER">Other</option>
-//                                 </select>
-//                             </div>
-//                         </div>
-//                     </div>
-//                     <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Address *</label><input name="address" required value={formData.address} onChange={handleChange} placeholder="e.g. Westlands, Nairobi" className={inputClass} /></div>
-//                     <div>
-//                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Emergency Contact</h3>
-//                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Contact Name</label><input name="emergencyContactName" value={formData.emergencyContactName} onChange={handleChange} className={inputClass} /></div>
-//                             <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Contact Phone</label><input name="emergencyContactPhone" type="tel" value={formData.emergencyContactPhone} onChange={handleChange} className={inputClass} /></div>
-//                         </div>
-//                     </div>
-//                     <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Known Allergies</label>
-//                         <textarea name="allergies" value={formData.allergies} onChange={handleChange} rows={3} placeholder="e.g. Penicillin, Peanuts..." className={inputClass + " resize-none"} /></div>
-//                     <div className="flex gap-3">
-//                         <button type="submit" disabled={loading} className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-8 py-2.5 rounded-lg disabled:opacity-50 flex items-center gap-2">
-//                             {loading ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Registering...</> : "Register Patient"}
-//                         </button>
-//                         <button type="reset" onClick={() => setFormData({ firstName: "", lastName: "", email: "", phoneNumber: "", dateOfBirth: "", gender: "MALE", address: "", emergencyContactName: "", emergencyContactPhone: "", allergies: "" })}
-//                                 className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg">Clear</button>
-//                     </div>
-//                 </form>
-//             </div>
-//         </>
-//     );
-// }
+
+function BillingView({ onAlert }) {
+    const [bills, setBills] = useState([]);
+    const [filter, setFilter] = useState("all");
+    const [loading, setLoading] = useState(true);
+    const [showAddItem, setShowAddItem] = useState(null);
+    const [showPayment, setShowPayment] = useState(null);
+
+    useEffect(() => { fetchBills(); }, [filter]);
+
+    const fetchBills = async () => {
+        setLoading(true);
+        try {
+            const res = filter === "all"
+                ? await billService.getAll()
+                : await billService.getByStatus(filter);
+            if (res.success) setBills(res.data);
+        } catch (err) { console.error(err); }
+        finally { setLoading(false); }
+    };
+
+    const handleAddItem = async (billId, data) => {
+        try {
+            const res = await billService.addItem(billId, data);
+            if (res.success) {
+                onAlert("Charge added successfully");
+                fetchBills();
+                setShowAddItem(null);
+            }
+        } catch (err) { console.error(err); }
+    };
+
+    const handlePayment = async (billId, data) => {
+        try {
+            const res = await billService.recordPayment(billId, data);
+            if (res.success) {
+                onAlert("Payment recorded successfully");
+                fetchBills();
+                setShowPayment(null);
+            }
+        } catch (err) { console.error(err); }
+    };
+
+    return (
+        <>
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800">Billing</h1>
+                    <p className="text-slate-500 mt-1">{bills.length} bills</p>
+                </div>
+                <div className="flex gap-2">
+                    {[
+                        { key: "all", label: "All" },
+                        { key: "PENDING", label: "Pending" },
+                        { key: "PAID", label: "Paid" },
+                    ].map(f => (
+                        <button key={f.key} onClick={() => setFilter(f.key)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                    filter === f.key ? "bg-teal-600 text-white" : "bg-white border border-slate-200 text-slate-600"
+                                }`}>
+                            {f.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {loading ? (
+                <div className="p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-600 border-t-transparent mx-auto" />
+                </div>
+            ) : bills.length === 0 ? (
+                <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
+                    No bills found. Bills are auto-generated when doctors create prescriptions.
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {bills.map(bill => (
+                        <div key={bill.id} className="bg-white rounded-xl border border-slate-200 p-5">
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <p className="text-base font-semibold text-slate-800">
+                                        {bill.patientFirstName} {bill.patientLastName}
+                                    </p>
+                                    <p className="text-sm text-slate-500">
+                                        {bill.patientPhone} | Bill #{bill.id}
+                                        {bill.appointmentId && ` | Appointment #${bill.appointmentId}`}
+                                    </p>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    bill.paymentStatus === "PAID"
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "bg-amber-100 text-amber-700"
+                                }`}>
+                                    {bill.paymentStatus}
+                                </span>
+                            </div>
+
+                            {/* Line Items */}
+                            {bill.items && bill.items.length > 0 && (
+                                <div className="bg-slate-50 rounded-lg p-4 mb-4">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                        <tr className="text-slate-500 text-xs uppercase">
+                                            <th className="text-left pb-2">Item</th>
+                                            <th className="text-center pb-2">Qty</th>
+                                            <th className="text-right pb-2">Unit Price</th>
+                                            <th className="text-right pb-2">Total</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-200">
+                                        {bill.items.map((item, i) => (
+                                            <tr key={i}>
+                                                <td className="py-2 text-slate-700">{item.description}</td>
+                                                <td className="py-2 text-center text-slate-600">{item.quantity}</td>
+                                                <td className="py-2 text-right text-slate-600">KES {item.unitPrice?.toFixed(2)}</td>
+                                                <td className="py-2 text-right font-medium text-slate-800">KES {item.totalPrice?.toFixed(2)}</td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {/* Total */}
+                            <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                                <span className="text-sm font-semibold text-slate-800">Total Amount</span>
+                                <span className="text-lg font-bold text-slate-800">KES {bill.totalAmount?.toFixed(2)}</span>
+                            </div>
+
+                            {/* Payment info if paid */}
+                            {bill.paymentStatus === "PAID" && (
+                                <div className="mt-3 bg-emerald-50 rounded-lg p-3 text-sm text-emerald-700">
+                                    Paid via {bill.paymentMethod}
+                                    {bill.paymentReference && ` — Ref: ${bill.paymentReference}`}
+                                    {bill.paidAt && ` — ${new Date(bill.paidAt).toLocaleDateString()}`}
+                                </div>
+                            )}
+
+                            {/* Actions for pending bills */}
+                            {bill.paymentStatus === "PENDING" && (
+                                <div className="mt-4 flex gap-3">
+                                    <button onClick={() => setShowAddItem(bill)}
+                                            className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm font-medium rounded-lg transition-all">
+                                        + Add Charge
+                                    </button>
+                                    <button onClick={() => setShowPayment(bill)}
+                                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-all">
+                                        Record Payment
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Add Charge Modal */}
+            {showAddItem && (
+                <AddChargeModal
+                    bill={showAddItem}
+                    onClose={() => setShowAddItem(null)}
+                    onSubmit={(data) => handleAddItem(showAddItem.id, data)}
+                />
+            )}
+
+            {/* Record Payment Modal */}
+            {showPayment && (
+                <PaymentModal
+                    bill={showPayment}
+                    onClose={() => setShowPayment(null)}
+                    onSubmit={(data) => handlePayment(showPayment.id, data)}
+                />
+            )}
+        </>
+    );
+}
+
+function AddChargeModal({ bill, onClose, onSubmit }) {
+    const [formData, setFormData] = useState({ description: "", quantity: 1, unitPrice: "" });
+    const [loading, setLoading] = useState(false);
+
+    const presets = [
+        { label: "Consultation Fee", price: 500 },
+        { label: "Lab Test - Blood", price: 1500 },
+        { label: "Lab Test - Urine", price: 800 },
+        { label: "Lab Test - X-Ray", price: 3000 },
+        { label: "Injection Fee", price: 200 },
+        { label: "Dressing/Wound Care", price: 300 },
+    ];
+
+    const handlePreset = (preset) => {
+        setFormData({ description: preset.label, quantity: 1, unitPrice: preset.price });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.description || !formData.unitPrice) return;
+        setLoading(true);
+        await onSubmit({
+            description: formData.description,
+            quantity: Number(formData.quantity),
+            unitPrice: Number(formData.unitPrice),
+        });
+        setLoading(false);
+    };
+
+    const inputClass = "w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent";
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-800">Add Charge</h2>
+                        <p className="text-sm text-slate-500">{bill.patientFirstName} {bill.patientLastName} — Bill #{bill.id}</p>
+                    </div>
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div className="p-6">
+                    {/* Quick presets */}
+                    <p className="text-sm font-medium text-slate-700 mb-2">Quick Add</p>
+                    <div className="flex flex-wrap gap-2 mb-6">
+                        {presets.map((p, i) => (
+                            <button key={i} type="button" onClick={() => handlePreset(p)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                        formData.description === p.label
+                                            ? "bg-blue-600 text-white"
+                                            : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                                    }`}>
+                                {p.label} (KES {p.price})
+                            </button>
+                        ))}
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Description *</label>
+                            <input type="text" value={formData.description}
+                                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                   required placeholder="e.g. Consultation Fee" className={inputClass} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Quantity</label>
+                                <input type="number" min="1" value={formData.quantity}
+                                       onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                                       required className={inputClass} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Unit Price (KES) *</label>
+                                <input type="number" min="0" step="0.01" value={formData.unitPrice}
+                                       onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
+                                       required placeholder="500" className={inputClass} />
+                            </div>
+                        </div>
+
+                        {formData.unitPrice && formData.quantity && (
+                            <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-700">
+                                Total: <span className="font-bold">KES {(Number(formData.unitPrice) * Number(formData.quantity)).toFixed(2)}</span>
+                            </div>
+                        )}
+
+                        <button type="submit" disabled={loading}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                            {loading ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Adding...</> : "Add Charge"}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function PaymentModal({ bill, onClose, onSubmit }) {
+    const [formData, setFormData] = useState({ paymentMethod: "", paymentReference: "" });
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.paymentMethod) return;
+        if (formData.paymentMethod === "MPESA" && !formData.paymentReference.trim()) return;
+        setLoading(true);
+        await onSubmit(formData);
+        setLoading(false);
+    };
+
+    const inputClass = "w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent";
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+                <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-800">Record Payment</h2>
+                        <p className="text-sm text-slate-500">{bill.patientFirstName} {bill.patientLastName}</p>
+                    </div>
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div className="p-6">
+                    <div className="bg-slate-50 rounded-lg p-4 mb-6 text-center">
+                        <p className="text-sm text-slate-500">Amount Due</p>
+                        <p className="text-3xl font-bold text-slate-800">KES {bill.totalAmount?.toFixed(2)}</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">Payment Method *</label>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { key: "CASH", label: "Cash", icon: "💵" },
+                                    { key: "MPESA", label: "M-Pesa", icon: "📱" },
+                                    { key: "CARD", label: "Card", icon: "💳" },
+                                ].map(m => (
+                                    <button key={m.key} type="button"
+                                            onClick={() => setFormData({ ...formData, paymentMethod: m.key })}
+                                            className={`p-3 rounded-lg border-2 text-center transition-all ${
+                                                formData.paymentMethod === m.key
+                                                    ? "border-emerald-500 bg-emerald-50"
+                                                    : "border-slate-200 hover:border-slate-300"
+                                            }`}>
+                                        <span className="text-2xl">{m.icon}</span>
+                                        <p className="text-xs font-medium text-slate-700 mt-1">{m.label}</p>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {formData.paymentMethod === "MPESA" && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">M-Pesa Transaction Code *</label>
+                                <input type="text" value={formData.paymentReference}
+                                       onChange={(e) => setFormData({ ...formData, paymentReference: e.target.value.toUpperCase() })}
+                                       required placeholder="e.g. SHK7Y2M4XR" className={inputClass} />
+                            </div>
+                        )}
+
+                        {formData.paymentMethod === "CARD" && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Card Reference (optional)</label>
+                                <input type="text" value={formData.paymentReference}
+                                       onChange={(e) => setFormData({ ...formData, paymentReference: e.target.value })}
+                                       placeholder="e.g. last 4 digits or approval code" className={inputClass} />
+                            </div>
+                        )}
+
+                        <button type="submit" disabled={loading || !formData.paymentMethod}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                            {loading ? <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Processing...</> : `Pay KES ${bill.totalAmount?.toFixed(2)}`}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 
 function RegisterPatientForm({ onSuccess }) {
     const [formData, setFormData] = useState({
