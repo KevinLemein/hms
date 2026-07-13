@@ -3,7 +3,6 @@ package com.kevinlemein.backend.controller;
 import com.kevinlemein.backend.dto.ApiResponse;
 import com.kevinlemein.backend.dto.AuthResponse;
 import com.kevinlemein.backend.dto.LoginRequest;
-import com.kevinlemein.backend.dto.RegisterRequest;
 import com.kevinlemein.backend.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,22 +16,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-
-//    @PostMapping("/register")
-//    public ResponseEntity<ApiResponse<AuthResponse>> register(
-//            @Valid @RequestBody RegisterRequest request
-//    ) {
-//        try {
-//            AuthResponse response = authService.register(request);
-//            return ResponseEntity
-//                    .status(HttpStatus.CREATED)
-//                    .body(ApiResponse.success("User registered successfully", response));
-//        } catch (RuntimeException e) {
-//            return ResponseEntity
-//                    .badRequest()
-//                    .body(ApiResponse.error(e.getMessage()));
-//        }
-//    }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(

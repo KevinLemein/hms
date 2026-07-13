@@ -28,16 +28,10 @@ public class PatientController {
     public ResponseEntity<ApiResponse<PatientResponse>> registerPatient(
             @Valid @RequestBody RegisterPatientRequest request
     ) {
-        try {
-            PatientResponse response = patientService.registerPatient(request);
-            return ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("Patient registered successfully", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
-        }
+        PatientResponse response = patientService.registerPatient(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Patient registered successfully", response));
     }
 
     /**
@@ -56,26 +50,19 @@ public class PatientController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR')")
     public ResponseEntity<ApiResponse<PatientResponse>> getPatientById(@PathVariable Long id) {
-        try {
-            PatientResponse response = patientService.getPatientById(id);
-            return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        PatientResponse response = patientService.getPatientById(id);
+        return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
     }
 
     /**
      * Get patient by user ID (for patient dashboard)
      */
     @GetMapping("/by-user/{userId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR', 'ROLE_PATIENT')")
+    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR') " +
+            "or @patientSecurity.isOwnUserId(#userId)")
     public ResponseEntity<ApiResponse<PatientResponse>> getPatientByUserId(@PathVariable Long userId) {
-        try {
-            PatientResponse response = patientService.getPatientByUserId(userId);
-            return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        PatientResponse response = patientService.getPatientByUserId(userId);
+        return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
     }
 
     /**

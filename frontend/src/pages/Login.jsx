@@ -1,17 +1,26 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { dashboardPathForRole } from "../utils/roleRoutes.jsx";
+
+const roleLabels = {
+    ROLE_ADMIN: "Admin",
+    ROLE_DOCTOR: "Doctor",
+    ROLE_RECEPTIONIST: "Receptionist",
+    ROLE_PATIENT: "Patient",
+};
 
 export default function Login() {
     const [formData, setFormData] = useState({ email: "", password: "" });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const { login } = useAuth();
+    const { login, user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
-    const from = location.state?.from?.pathname || "/dashboard";
+    const from = location.state?.from?.pathname;
+    const sessionExpired = location.state?.sessionExpired;
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,15 +35,9 @@ export default function Login() {
         try {
             const response = await login(formData);
             if (response.success) {
-                // Navigate directly to the role-specific dashboard
-                const roleRoutes = {
-                    ROLE_ADMIN: "/admin",
-                    ROLE_DOCTOR: "/doctor",
-                    ROLE_RECEPTIONIST: "/receptionist",
-                    ROLE_PATIENT: "/patient",
-                };
-                const destination = roleRoutes[response.data.role] || "/dashboard";
-                navigate(destination, { replace: true });
+                // If they were bounced here from a protected route, send them
+                // back to it; otherwise land on their role's dashboard.
+                navigate(from || dashboardPathForRole(response.data.role), { replace: true });
             } else {
                 setError(response.message || "Login failed");
             }
@@ -44,6 +47,47 @@ export default function Login() {
             setLoading(false);
         }
     };
+
+    // Already have a valid session — don't show the login form again.
+    // Landing here happens if someone hits /login directly (bookmark,
+    // typed URL, stale link) while still signed in; showing the form in
+    // that case is confusing since submitting it just re-authenticates the
+    // same account. Show what's going on instead and offer a clear way
+    // forward, matching what most sites do when you're already signed in.
+    if (isAuthenticated && user) {
+        const destination = dashboardPathForRole(user.role);
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8">
+                <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
+                    <div className="w-14 h-14 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-5">
+                        <svg className="w-7 h-7 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">You're already signed in</h2>
+                    <p className="text-slate-500 mt-1">
+                        {user.username} ({user.email})
+                        {roleLabels[user.role] && (
+                            <span className="block text-sm mt-0.5">{roleLabels[user.role]}</span>
+                        )}
+                    </p>
+
+                    <button
+                        onClick={() => navigate(destination, { replace: true })}
+                        className="w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition-all"
+                    >
+                        Continue to dashboard
+                    </button>
+                    <button
+                        onClick={logout}
+                        className="w-full mt-3 text-slate-500 hover:text-slate-700 text-sm font-medium py-2 transition-all"
+                    >
+                        Sign in with a different account
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex">
@@ -103,6 +147,15 @@ export default function Login() {
                         <h2 className="text-2xl font-bold text-slate-800">Welcome back</h2>
                         <p className="text-slate-500 mt-1">Sign in to your account to continue</p>
                     </div>
+
+                    {sessionExpired && !error && (
+                        <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Your session expired. Please sign in again.
+                        </div>
+                    )}
 
                     {error && (
                         <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">

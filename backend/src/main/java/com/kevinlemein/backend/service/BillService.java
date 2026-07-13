@@ -1,6 +1,8 @@
 package com.kevinlemein.backend.service;
 
 import com.kevinlemein.backend.dto.*;
+import com.kevinlemein.backend.exception.InvalidRequestException;
+import com.kevinlemein.backend.exception.ResourceNotFoundException;
 import com.kevinlemein.backend.model.*;
 import com.kevinlemein.backend.repository.BillRepository;
 import com.kevinlemein.backend.repository.AppointmentRepository;
@@ -31,11 +33,11 @@ public class BillService {
     public BillResponse createFromPrescription(CreateBillFromPrescriptionRequest request) {
 
         Appointment appointment = appointmentRepository.findById(request.getAppointmentId())
-                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
 
         Patient patient = appointment.getPatient();
         if (patient == null) {
-            throw new RuntimeException("Patient not found for this appointment");
+            throw new ResourceNotFoundException("Patient not found for this appointment");
         }
 
         // Find existing bill or create new one
@@ -72,10 +74,10 @@ public class BillService {
     public BillResponse addItem(Long billId, AddBillItemRequest request) {
 
         Bill bill = billRepository.findById(billId)
-                .orElseThrow(() -> new RuntimeException("Bill not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Bill not found"));
 
         if (bill.getPaymentStatus() == PaymentStatus.PAID) {
-            throw new RuntimeException("Cannot add items to a paid bill");
+            throw new InvalidRequestException("Cannot add items to a paid bill");
         }
 
         BillDrugs item = BillDrugs.builder()
@@ -97,22 +99,22 @@ public class BillService {
     public BillResponse recordPayment(Long billId, RecordPaymentRequest request) {
 
         Bill bill = billRepository.findById(billId)
-                .orElseThrow(() -> new RuntimeException("Bill not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Bill not found"));
 
         if (bill.getPaymentStatus() == PaymentStatus.PAID) {
-            throw new RuntimeException("Bill is already paid");
+            throw new InvalidRequestException("Bill is already paid");
         }
 
         PaymentMethod method;
         try {
             method = PaymentMethod.valueOf(request.getPaymentMethod().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid payment method: " + request.getPaymentMethod());
+            throw new InvalidRequestException("Invalid payment method: " + request.getPaymentMethod());
         }
 
         // Validate M-Pesa reference
         if (method == PaymentMethod.MPESA && (request.getPaymentReference() == null || request.getPaymentReference().isBlank())) {
-            throw new RuntimeException("M-Pesa transaction code is required");
+            throw new InvalidRequestException("M-Pesa transaction code is required");
         }
 
         bill.setPaymentMethod(method);
@@ -142,7 +144,7 @@ public class BillService {
         try {
             paymentStatus = PaymentStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid status: " + status);
+            throw new InvalidRequestException("Invalid status: " + status);
         }
         return billRepository.findByPaymentStatus(paymentStatus)
                 .stream()
@@ -165,7 +167,7 @@ public class BillService {
      */
     public BillResponse getBillByAppointment(Long appointmentId) {
         Bill bill = billRepository.findByAppointmentId(appointmentId)
-                .orElseThrow(() -> new RuntimeException("No bill found for this appointment"));
+                .orElseThrow(() -> new ResourceNotFoundException("No bill found for this appointment"));
         return mapToResponse(bill);
     }
 
@@ -174,7 +176,7 @@ public class BillService {
      */
     public BillResponse getBillById(Long id) {
         Bill bill = billRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bill not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Bill not found"));
         return mapToResponse(bill);
     }
 

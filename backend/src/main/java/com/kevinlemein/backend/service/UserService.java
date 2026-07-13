@@ -2,6 +2,9 @@ package com.kevinlemein.backend.service;
 
 import com.kevinlemein.backend.dto.CreateUserRequest;
 import com.kevinlemein.backend.dto.UserResponse;
+import com.kevinlemein.backend.exception.DuplicateResourceException;
+import com.kevinlemein.backend.exception.InvalidRequestException;
+import com.kevinlemein.backend.exception.ResourceNotFoundException;
 import com.kevinlemein.backend.model.*;
 import com.kevinlemein.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,36 +38,23 @@ public class UserService {
 
         }
         catch (IllegalArgumentException e){
-            throw new RuntimeException("Invalid role " + request.getRole());
+            throw new InvalidRequestException("Invalid role " + request.getRole());
         }
 
-//        if (creatorRole == Role.ROLE_RECEPTIONIST) {
-//            if (requestedRole == Role.ROLE_ADMIN) {
-//                throw new RuntimeException( "Receptionists cant create admins");
-//            }
-//
-//        }
-//
-//        if (creatorRole == Role.ROLE_ADMIN) {
-//            if (requestedRole == Role.ROLE_PATIENT) {
-//                throw new RuntimeException("Admins cannot create patients. Patients are registered by the receptionist.");
-//            }
-//        }
-
         if (creatorRole == Role.ROLE_RECEPTIONIST && requestedRole == Role.ROLE_ADMIN) {
-            throw new RuntimeException("Receptionists can't create admins");
+            throw new InvalidRequestException("Receptionists can't create admins");
         }
 
         if (creatorRole == Role.ROLE_ADMIN && requestedRole == Role.ROLE_PATIENT) {
-            throw new RuntimeException("Admins cannot create patients.");
+            throw new InvalidRequestException("Admins cannot create patients.");
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email is already registered");
+            throw new DuplicateResourceException("Email is already registered");
         }
 
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username is already taken");
+            throw new DuplicateResourceException("Username is already taken");
         }
 
         User user = User.builder()
@@ -111,14 +101,14 @@ public class UserService {
 
     public UserResponse updateUserRole (Long userId, String newRole) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Role role;
         try{
             role =  Role.valueOf(newRole);
         }
         catch (IllegalArgumentException e){
-            throw new RuntimeException("Invalid role " + newRole);
+            throw new InvalidRequestException("Invalid role " + newRole);
         }
 
         user.setRole(role);
@@ -132,7 +122,7 @@ public class UserService {
 
     public UserResponse toggleUserStatus(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         user.setEnabled(!user.isEnabled());
         User updatedUser = userRepository.save(user);

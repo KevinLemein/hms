@@ -45,9 +45,19 @@ public class JwtService {
                 .compact();
     }
 
+    /**
+     * A JWT is only valid if: it belongs to the requested user, it hasn't
+     * expired, AND the account is still enabled. userDetails here is loaded
+     * fresh from the DB on every request (see JwtAuthenticationFilter /
+     * CustomUserDetailsService), so isEnabled() reflects current state —
+     * without this check, disabling a user's account would have no effect
+     * until their existing token naturally expired.
+     */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        return username.equals(userDetails.getUsername())
+                && userDetails.isEnabled()
+                && !isTokenExpired(token);
     }
 
     private boolean isTokenExpired(String token) {

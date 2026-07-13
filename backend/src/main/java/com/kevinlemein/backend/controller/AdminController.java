@@ -3,6 +3,7 @@ package com.kevinlemein.backend.controller;
 import com.kevinlemein.backend.dto.ApiResponse;
 import com.kevinlemein.backend.dto.CreateUserRequest;
 import com.kevinlemein.backend.dto.UserResponse;
+import com.kevinlemein.backend.exception.InvalidRequestException;
 import com.kevinlemein.backend.model.Role;
 import com.kevinlemein.backend.service.UserService;
 
@@ -33,16 +34,10 @@ public class AdminController {
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @Valid @RequestBody CreateUserRequest request
     ) {
-        try {
-            UserResponse response = userService.createUser(request, Role.ROLE_ADMIN);
-            return ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("User created successfully", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
-        }
+        UserResponse response = userService.createUser(request, Role.ROLE_ADMIN);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("User created successfully", response));
     }
 
     /**
@@ -59,13 +54,14 @@ public class AdminController {
      */
     @GetMapping("/users/role/{role}")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getUsersByRole(@PathVariable String role) {
+        Role r;
         try {
-            Role r = Role.valueOf(role);
-            List<UserResponse> users = userService.getUsersByRole(r);
-            return ResponseEntity.ok(ApiResponse.success("Users retrieved", users));
+            r = Role.valueOf(role);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid role: " + role));
+            throw new InvalidRequestException("Invalid role: " + role);
         }
+        List<UserResponse> users = userService.getUsersByRole(r);
+        return ResponseEntity.ok(ApiResponse.success("Users retrieved", users));
     }
 
     /**
@@ -76,13 +72,9 @@ public class AdminController {
             @PathVariable Long id,
             @RequestBody Map<String, String> body
     ) {
-        try {
-            String newRole = body.get("role");
-            UserResponse response = userService.updateUserRole(id, newRole);
-            return ResponseEntity.ok(ApiResponse.success("Role updated successfully", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        String newRole = body.get("role");
+        UserResponse response = userService.updateUserRole(id, newRole);
+        return ResponseEntity.ok(ApiResponse.success("Role updated successfully", response));
     }
 
     /**
@@ -90,11 +82,7 @@ public class AdminController {
      */
     @PatchMapping("/users/{id}/toggle-status")
     public ResponseEntity<ApiResponse<UserResponse>> toggleUserStatus(@PathVariable Long id) {
-        try {
-            UserResponse response = userService.toggleUserStatus(id);
-            return ResponseEntity.ok(ApiResponse.success("User status updated", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        UserResponse response = userService.toggleUserStatus(id);
+        return ResponseEntity.ok(ApiResponse.success("User status updated", response));
     }
 }

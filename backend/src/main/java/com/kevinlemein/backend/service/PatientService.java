@@ -2,6 +2,9 @@ package com.kevinlemein.backend.service;
 
 import com.kevinlemein.backend.dto.PatientResponse;
 import com.kevinlemein.backend.dto.RegisterPatientRequest;
+import com.kevinlemein.backend.exception.DuplicateResourceException;
+import com.kevinlemein.backend.exception.InvalidRequestException;
+import com.kevinlemein.backend.exception.ResourceNotFoundException;
 import com.kevinlemein.backend.model.Gender;
 import com.kevinlemein.backend.model.Patient;
 import com.kevinlemein.backend.model.Role;
@@ -38,7 +41,7 @@ public class PatientService {
 
         // Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email is already registered");
+            throw new DuplicateResourceException("Email is already registered");
         }
 
         // Generate username from email prefix
@@ -65,7 +68,7 @@ public class PatientService {
         try {
             gender = Gender.valueOf(request.getGender().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid gender: " + request.getGender());
+            throw new InvalidRequestException("Invalid gender: " + request.getGender());
         }
 
         // Create Patient
@@ -103,7 +106,7 @@ public class PatientService {
      */
     public PatientResponse getPatientById(Long id) {
         Patient patient = patientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
         return mapToResponse(patient);
     }
 
@@ -112,7 +115,7 @@ public class PatientService {
      */
     public PatientResponse getPatientByUserId(Long userId) {
         Patient patient = patientRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Patient record not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Patient record not found"));
         return mapToResponse(patient);
     }
 

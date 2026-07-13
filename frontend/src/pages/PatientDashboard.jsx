@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import patientService from "../api/patientService";
 import appointmentService from "../api/appointmentService";
 import prescriptionService from "../api/prescriptionService";
@@ -8,6 +9,7 @@ import billService from "../api/billService";
 
 export default function PatientDashboard() {
     const { user } = useAuth();
+    const { showError } = useToast();
     const [activeTab, setActiveTab] = useState("dashboard");
     const [patient, setPatient] = useState(null);
     const [appointments, setAppointments] = useState([]);
@@ -36,7 +38,10 @@ export default function PatientDashboard() {
                 const apptRes = await appointmentService.getByPatient(res.data.id);
                 if (apptRes.success) setAppointments(apptRes.data.filter(a => a.appointmentStatus));
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load your profile");
+        }
         finally { setLoading(false); }
     };
 
@@ -45,7 +50,10 @@ export default function PatientDashboard() {
         try {
             const res = await appointmentService.getByPatient(patient.id);
             if (res.success) setAppointments(res.data.filter(a => a.appointmentStatus));
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load appointments");
+        }
     };
 
     const fetchPrescriptions = async () => {
@@ -56,7 +64,10 @@ export default function PatientDashboard() {
             ]);
             setPrescriptions(Array.isArray(prescData) ? prescData : []);
             setDrugs(Array.isArray(drugsData) ? drugsData : []);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load prescriptions");
+        }
     };
 
     const fetchBills = async () => {
@@ -64,7 +75,10 @@ export default function PatientDashboard() {
         try {
             const res = await billService.getByPatient(patient.id);
             if (res.success) setBills(res.data);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load bills");
+        }
     };
 
     // Filter prescriptions to only this patient's (match via appointmentId)
@@ -309,7 +323,7 @@ export default function PatientDashboard() {
                 )}
 
                 {/* ==================== BILLS ==================== */}
-                
+
                 {activeTab === "bills" && (
                     <>
                         <div className="mb-6">

@@ -29,16 +29,10 @@ public class UserManagementController {
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @Valid @RequestBody CreateUserRequest request
     ) {
-        try {
-            UserResponse response = userService.createUser(request, Role.ROLE_RECEPTIONIST);
-            return ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("User created successfully", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
-        }
+        UserResponse response = userService.createUser(request, Role.ROLE_RECEPTIONIST);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("User created successfully", response));
     }
 
     /**

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import appointmentService from "../api/appointmentService";
 import prescriptionService from "../api/prescriptionService";
 import patientService from "../api/patientService";
@@ -8,6 +9,7 @@ import billService from "../api/billService";
 
 export default function DoctorDashboard() {
     const { user } = useAuth();
+    const { showError } = useToast();
     const [activeTab, setActiveTab] = useState("dashboard");
     const [todayAppointments, setTodayAppointments] = useState([]);
     const [allAppointments, setAllAppointments] = useState([]);
@@ -25,6 +27,7 @@ export default function DoctorDashboard() {
                 setDrugs(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error("Failed to load drugs:", err);
+                showError("Failed to load drug list");
             }
         };
         loadDrugs();
@@ -43,7 +46,10 @@ export default function DoctorDashboard() {
         try {
             const response = await appointmentService.getTodayByDoctor(user.id);
             if (response.success) setTodayAppointments(response.data.filter(a => a.appointmentStatus));
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load today's appointments");
+        }
         finally { setLoading(false); }
     };
 
@@ -51,14 +57,20 @@ export default function DoctorDashboard() {
         try {
             const response = await appointmentService.getByDoctor(user.id);
             if (response.success) setAllAppointments(response.data.filter(a => a.appointmentStatus));
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load appointments");
+        }
     };
 
     const fetchPrescriptions = async () => {
         try {
             const prescData = await prescriptionService.getAll();
             setPrescriptions(Array.isArray(prescData) ? prescData : []);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load prescriptions");
+        }
     };
 
     const handleStatusUpdate = async (id, status) => {
@@ -70,7 +82,10 @@ export default function DoctorDashboard() {
                 setSuccess("Status updated");
                 setTimeout(() => setSuccess(""), 3000);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to update status");
+        }
     };
 
     const handlePrescriptionCreated = () => {
@@ -446,6 +461,7 @@ function AllAppointmentsView({ appointments, statusColors, prescriptions, onPres
 }
 
 function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
+    const { showError } = useToast();
     const [patients, setPatients] = useState([]);
     const [patientSearch, setPatientSearch] = useState(prefill.patientName || "");
     const [filteredPatients, setFilteredPatients] = useState([]);
@@ -466,7 +482,10 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
         try {
             const r = await patientService.getAllPatients();
             if (r.success) setPatients(r.data);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError("Failed to load patient list");
+        }
     };
 
     useEffect(() => {
@@ -528,12 +547,18 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
                         drugId: selectedDrug.id,
                     });
                 } catch (billErr) {
+                    // Prescription already saved successfully at this point — this is a
+                    // partial failure, not a total one. Silently swallowing it previously
+                    // meant the patient could go unbilled with no one aware anything went
+                    // wrong. Surface it distinctly so reception knows to add the charge
+                    // manually instead of failing the whole flow or hiding the problem.
                     console.error("Bill creation failed (prescription was saved):", billErr);
+                    showError("Prescription saved, but the bill couldn't be created automatically. Please add the charge manually from the Bills tab.");
                 }
             }
             onCreated();
-            }
-            catch (err) {
+        }
+        catch (err) {
             console.error("Prescription error:", err);
             setError(err.response?.data?.message || err.response?.data?.title || "Failed to create prescription");
         } finally {

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import { useToast } from "../context/ToastContext";
 import patientService from "../api/patientService";
 import appointmentService from "../api/appointmentService";
 import receptionistService from "../api/receptionistService";
 import billService from "../api/billService";
 
 export default function ReceptionistDashboard() {
+    const { showError } = useToast();
     const [activeTab, setActiveTab] = useState("dashboard");
     const [patients, setPatients] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -23,7 +25,10 @@ export default function ReceptionistDashboard() {
         try {
             const response = await patientService.getAllPatients();
             if (response.success) setPatients(response.data);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load patients");
+        }
         finally { setLoadingPatients(false); }
     };
 
@@ -31,7 +36,10 @@ export default function ReceptionistDashboard() {
         try {
             const response = await appointmentService.getToday();
             if (response.success) setTodayAppointments(response.data.filter(a => a.appointmentStatus));
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load today's appointments");
+        }
     };
 
     const handleSearch = async (e) => {
@@ -40,7 +48,10 @@ export default function ReceptionistDashboard() {
         try {
             const response = await patientService.searchPatients(searchQuery);
             if (response.success) setSearchResults(response.data);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Search failed");
+        }
     };
 
     const handleStatusUpdate = async (id, status) => {
@@ -50,7 +61,10 @@ export default function ReceptionistDashboard() {
                 setTodayAppointments(prev => prev.map(a => a.id === id ? response.data : a));
                 showAlert("Appointment status updated");
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to update status");
+        }
     };
 
     const showAlert = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(""), 4000); };
@@ -173,6 +187,7 @@ export default function ReceptionistDashboard() {
 }
 
 function AppointmentsView({ onStatusUpdate }) {
+    const { showError } = useToast();
     const [filter, setFilter] = useState("today");
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -184,7 +199,10 @@ function AppointmentsView({ onStatusUpdate }) {
         try {
             const response = filter === "today" ? await appointmentService.getToday() : await appointmentService.getAll();
             if (response.success) setAppointments(response.data.filter(a => a.appointmentStatus));
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load appointments");
+        }
         finally { setLoading(false); }
     };
 
@@ -212,6 +230,7 @@ function AppointmentsView({ onStatusUpdate }) {
 }
 
 function BookAppointmentForm({ onSuccess }) {
+    const { showError } = useToast();
     const [formData, setFormData] = useState({ patientId: "", doctorId: "", appointmentDateTime: "", reason: "" });
     const [patients, setPatients] = useState([]);
     const [doctors, setDoctors] = useState([]);
@@ -227,7 +246,10 @@ function BookAppointmentForm({ onSuccess }) {
             const [pRes, dRes] = await Promise.all([patientService.getAllPatients(), receptionistService.getDoctors()]);
             if (pRes.success) setPatients(pRes.data);
             if (dRes.success) setDoctors(dRes.data);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError("Failed to load patients/doctors list");
+        }
     };
 
     useEffect(() => {
@@ -412,6 +434,7 @@ function AppointmentTable({ appointments, onStatusUpdate }) {
 
 
 function BillingView({ onAlert }) {
+    const { showError } = useToast();
     const [bills, setBills] = useState([]);
     const [filter, setFilter] = useState("all");
     const [loading, setLoading] = useState(true);
@@ -427,7 +450,10 @@ function BillingView({ onAlert }) {
                 ? await billService.getAll()
                 : await billService.getByStatus(filter);
             if (res.success) setBills(res.data);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load bills");
+        }
         finally { setLoading(false); }
     };
 
@@ -439,7 +465,10 @@ function BillingView({ onAlert }) {
                 fetchBills();
                 setShowAddItem(null);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to add charge");
+        }
     };
 
     const handlePayment = async (billId, data) => {
@@ -450,7 +479,10 @@ function BillingView({ onAlert }) {
                 fetchBills();
                 setShowPayment(null);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to record payment");
+        }
     };
 
     return (
@@ -779,6 +811,7 @@ function PaymentModal({ bill, onClose, onSubmit }) {
 
 
 function RegisterPatientForm({ onSuccess }) {
+    const { showError } = useToast();
     const [formData, setFormData] = useState({
         firstName: "", lastName: "", email: "", phoneNumber: "",
         dateOfBirth: "", gender: "MALE", address: "",
@@ -796,7 +829,10 @@ function RegisterPatientForm({ onSuccess }) {
             try {
                 const res = await receptionistService.getDoctors();
                 if (res.success) setDoctors(res.data);
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error(err);
+                showError("Failed to load doctors list");
+            }
         };
         loadDoctors();
     }, []);
@@ -955,7 +991,11 @@ function PatientTable({ patients }) {
 function CredentialsModal({ patient, onClose }) {
     const [copied, setCopied] = useState(false);
     const handleCopy = () => {
-        navigator.clipboard.writeText(`MediCare HMS Login\nName: ${patient.firstName} ${patient.lastName}\nEmail: ${patient.email}\nUsername: ${patient.username}\nPassword: ${patient.generatedPassword}\nLogin: http://localhost:3000/login`);
+        // window.location.origin instead of a hardcoded URL — the hardcoded
+        // localhost:3000 only worked on a dev machine and would hand out a
+        // broken login link to every patient once this runs anywhere else
+        // (Docker/nginx prod deploy, a colleague's machine, etc.)
+        navigator.clipboard.writeText(`MediCare HMS Login\nName: ${patient.firstName} ${patient.lastName}\nEmail: ${patient.email}\nUsername: ${patient.username}\nPassword: ${patient.generatedPassword}\nLogin: ${window.location.origin}/login`);
         setCopied(true); setTimeout(() => setCopied(false), 2000);
     };
     return (
