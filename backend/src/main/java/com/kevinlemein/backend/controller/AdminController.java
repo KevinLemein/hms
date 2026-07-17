@@ -2,6 +2,7 @@ package com.kevinlemein.backend.controller;
 
 import com.kevinlemein.backend.dto.ApiResponse;
 import com.kevinlemein.backend.dto.CreateUserRequest;
+import com.kevinlemein.backend.dto.PagedResponse;
 import com.kevinlemein.backend.dto.UserResponse;
 import com.kevinlemein.backend.exception.InvalidRequestException;
 import com.kevinlemein.backend.model.Role;
@@ -9,6 +10,8 @@ import com.kevinlemein.backend.service.UserService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,11 +44,13 @@ public class AdminController {
     }
 
     /**
-     * Get all users
+     * Get all users (paginated — defaults to 20 per page)
      */
     @GetMapping("/users")
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
-        List<UserResponse> users = userService.getAllUsers();
+    public ResponseEntity<ApiResponse<PagedResponse<UserResponse>>> getAllUsers(
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        PagedResponse<UserResponse> users = userService.getAllUsers(pageable);
         return ResponseEntity.ok(ApiResponse.success("Users retrieved", users));
     }
 

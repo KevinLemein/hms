@@ -1,9 +1,9 @@
 package com.kevinlemein.backend.controller;
 
 import com.kevinlemein.backend.dto.ApiResponse;
-import com.kevinlemein.backend.dto.PatientResponse;
-import com.kevinlemein.backend.dto.RegisterPatientRequest;
-import com.kevinlemein.backend.service.PatientService;
+import com.kevinlemein.backend.dto.AppointmentResponse;
+import com.kevinlemein.backend.dto.BookAppointmentRequest;
+import com.kevinlemein.backend.service.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,68 +12,102 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/patients")
+@RequestMapping("/api/appointments")
 @RequiredArgsConstructor
-public class PatientController {
+public class AppointmentController {
 
-    private final PatientService patientService;
+    private final AppointmentService appointmentService;
 
     /**
-     * Register a new patient (receptionist or admin)
+     * Book a new appointment (receptionist only)
      */
-    @PostMapping("/register")
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<PatientResponse>> registerPatient(
-            @Valid @RequestBody RegisterPatientRequest request
+    @PostMapping
+    @PreAuthorize("hasAuthority('ROLE_RECEPTIONIST')")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> bookAppointment(
+            @Valid @RequestBody BookAppointmentRequest request
     ) {
-        PatientResponse response = patientService.registerPatient(request);
+        AppointmentResponse response = appointmentService.bookAppointment(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Patient registered successfully", response));
+                .body(ApiResponse.success("Appointment booked successfully", response));
     }
 
     /**
-     * Get all patients
+     * Update appointment status (doctor or receptionist)
+     */
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> updateStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body
+    ) {
+        String status = body.get("status");
+        String notes = body.get("notes");
+        AppointmentResponse response = appointmentService.updateStatus(id, status, notes);
+        return ResponseEntity.ok(ApiResponse.success("Status updated", response));
+    }
+
+    /**
+     * Get all appointments (admin/receptionist)
      */
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR')")
-    public ResponseEntity<ApiResponse<List<PatientResponse>>> getAllPatients() {
-        List<PatientResponse> patients = patientService.getAllPatients();
-        return ResponseEntity.ok(ApiResponse.success("Patients retrieved", patients));
+    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getAllAppointments() {
+        return ResponseEntity.ok(ApiResponse.success("Appointments retrieved",
+                appointmentService.getAllAppointments()));
     }
 
     /**
-     * Get patient by ID
+     * Get today's appointments (admin/receptionist)
+     */
+    @GetMapping("/today")
+    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getTodayAppointments() {
+        return ResponseEntity.ok(ApiResponse.success("Today's appointments",
+                appointmentService.getTodayAppointments()));
+    }
+
+    /**
+     * Get appointments by doctor
+     */
+    @GetMapping("/doctor/{doctorId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getByDoctor(@PathVariable Long doctorId) {
+        return ResponseEntity.ok(ApiResponse.success("Doctor appointments",
+                appointmentService.getByDoctor(doctorId)));
+    }
+
+    /**
+     * Get today's appointments for a specific doctor
+     */
+    @GetMapping("/doctor/{doctorId}/today")
+    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getTodayByDoctor(@PathVariable Long doctorId) {
+        return ResponseEntity.ok(ApiResponse.success("Today's appointments",
+                appointmentService.getTodayByDoctor(doctorId)));
+    }
+
+    /**
+     * Get appointments by patient
+     */
+    @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN') " +
+            "or @patientSecurity.isOwnPatientId(#patientId)")
+    public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getByPatient(@PathVariable Long patientId) {
+        return ResponseEntity.ok(ApiResponse.success("Patient appointments",
+                appointmentService.getByPatient(patientId)));
+    }
+
+    /**
+     * Get single appointment
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR')")
-    public ResponseEntity<ApiResponse<PatientResponse>> getPatientById(@PathVariable Long id) {
-        PatientResponse response = patientService.getPatientById(id);
-        return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
-    }
-
-    /**
-     * Get patient by user ID (for patient dashboard)
-     */
-    @GetMapping("/by-user/{userId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR') " +
-            "or @patientSecurity.isOwnUserId(#userId)")
-    public ResponseEntity<ApiResponse<PatientResponse>> getPatientByUserId(@PathVariable Long userId) {
-        PatientResponse response = patientService.getPatientByUserId(userId);
-        return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
-    }
-
-    /**
-     * Search patients by name, email, or phone
-     */
-    @GetMapping("/search")
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR')")
-    public ResponseEntity<ApiResponse<List<PatientResponse>>> searchPatients(
-            @RequestParam String query
-    ) {
-        List<PatientResponse> patients = patientService.searchPatients(query);
-        return ResponseEntity.ok(ApiResponse.success("Search results", patients));
+    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Appointment retrieved",
+                appointmentService.getById(id)));
     }
 }

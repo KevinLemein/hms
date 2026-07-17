@@ -1,6 +1,7 @@
 package com.kevinlemein.backend.service;
 
 import com.kevinlemein.backend.dto.PatientResponse;
+import com.kevinlemein.backend.dto.PagedResponse;
 import com.kevinlemein.backend.dto.RegisterPatientRequest;
 import com.kevinlemein.backend.exception.DuplicateResourceException;
 import com.kevinlemein.backend.exception.InvalidRequestException;
@@ -12,6 +13,8 @@ import com.kevinlemein.backend.model.User;
 import com.kevinlemein.backend.repository.PatientRepository;
 import com.kevinlemein.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,13 +95,11 @@ public class PatientService {
     }
 
     /**
-     * Get all patients
+     * Get all patients, paginated (defaults handled by the controller)
      */
-    public List<PatientResponse> getAllPatients() {
-        return patientRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PagedResponse<PatientResponse> getAllPatients(Pageable pageable) {
+        Page<Patient> patients = patientRepository.findAll(pageable);
+        return PagedResponse.from(patients.map(this::mapToResponse));
     }
 
     /**

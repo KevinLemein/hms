@@ -1,6 +1,7 @@
 package com.kevinlemein.backend.service;
 
 import com.kevinlemein.backend.dto.CreateUserRequest;
+import com.kevinlemein.backend.dto.PagedResponse;
 import com.kevinlemein.backend.dto.UserResponse;
 import com.kevinlemein.backend.exception.DuplicateResourceException;
 import com.kevinlemein.backend.exception.InvalidRequestException;
@@ -8,6 +9,8 @@ import com.kevinlemein.backend.exception.ResourceNotFoundException;
 import com.kevinlemein.backend.model.*;
 import com.kevinlemein.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -77,11 +80,9 @@ public class UserService {
      * Get all users
      */
 
-    public List<UserResponse> getAllUsers() {
-        return userRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PagedResponse<UserResponse> getAllUsers(Pageable pageable) {
+        Page<User> users = userRepository.findAll(pageable);
+        return PagedResponse.from(users.map(this::mapToResponse));
     }
 
     /**

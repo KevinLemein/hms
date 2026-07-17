@@ -1,11 +1,14 @@
 package com.kevinlemein.backend.controller;
 
 import com.kevinlemein.backend.dto.ApiResponse;
+import com.kevinlemein.backend.dto.PagedResponse;
 import com.kevinlemein.backend.dto.PatientResponse;
 import com.kevinlemein.backend.dto.RegisterPatientRequest;
 import com.kevinlemein.backend.service.PatientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,12 +38,14 @@ public class PatientController {
     }
 
     /**
-     * Get all patients
+     * Get all patients (paginated — defaults to 20 per page)
      */
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR')")
-    public ResponseEntity<ApiResponse<List<PatientResponse>>> getAllPatients() {
-        List<PatientResponse> patients = patientService.getAllPatients();
+    public ResponseEntity<ApiResponse<PagedResponse<PatientResponse>>> getAllPatients(
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        PagedResponse<PatientResponse> patients = patientService.getAllPatients(pageable);
         return ResponseEntity.ok(ApiResponse.success("Patients retrieved", patients));
     }
 

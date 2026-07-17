@@ -1,11 +1,11 @@
 package com.kevinlemein.backend.controller;
 
-import com.kevinlemein.backend.dto.ApiResponse;
-import com.kevinlemein.backend.dto.PatientResponse;
-import com.kevinlemein.backend.dto.RegisterPatientRequest;
-import com.kevinlemein.backend.service.PatientService;
+import com.kevinlemein.backend.dto.*;
+import com.kevinlemein.backend.service.BillService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,66 +14,98 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/patients")
+@RequestMapping("/api/bills")
 @RequiredArgsConstructor
-public class PatientController {
+public class BillController {
 
-    private final PatientService patientService;
+    private final BillService billService;
 
     /**
-     * Register a new patient (receptionist or admin)
+     * Create or update bill from a prescription
+     * Called by the frontend after a prescription is created via the .NET API
      */
-    @PostMapping("/register")
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse<PatientResponse>> registerPatient(
-            @Valid @RequestBody RegisterPatientRequest request
+    @PostMapping("/from-prescription")
+    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<BillResponse>> createFromPrescription(
+            @Valid @RequestBody CreateBillFromPrescriptionRequest request
     ) {
-        PatientResponse response = patientService.registerPatient(request);
+        BillResponse response = billService.createFromPrescription(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Patient registered successfully", response));
+                .body(ApiResponse.success("Bill created/updated from prescription", response));
     }
 
     /**
-     * Get all patients
+     * Add extra charge to an existing bill (receptionist adds consultation fee, etc.)
+     */
+    @PostMapping("/{billId}/items")
+    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<BillResponse>> addItem(
+            @PathVariable Long billId,
+            @Valid @RequestBody AddBillItemRequest request
+    ) {
+        BillResponse response = billService.addItem(billId, request);
+        return ResponseEntity.ok(ApiResponse.success("Item added to bill", response));
+    }
+
+    /**
+     * Record payment for a bill
+     */
+    @PatchMapping("/{billId}/pay")
+    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<BillResponse>> recordPayment(
+            @PathVariable Long billId,
+            @Valid @RequestBody RecordPaymentRequest request
+    ) {
+        BillResponse response = billService.recordPayment(billId, request);
+        return ResponseEntity.ok(ApiResponse.success("Payment recorded", response));
+    }
+
+    /**
+     * Get all bills (paginated — defaults to 20 per page, sorted newest first)
      */
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR')")
-    public ResponseEntity<ApiResponse<List<PatientResponse>>> getAllPatients() {
-        List<PatientResponse> patients = patientService.getAllPatients();
-        return ResponseEntity.ok(ApiResponse.success("Patients retrieved", patients));
+    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<PagedResponse<BillResponse>>> getAllBills(
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(ApiResponse.success("Bills retrieved", billService.getAllBills(pageable)));
     }
 
     /**
-     * Get patient by ID
+     * Get bills by status (PENDING, PAID)
+     */
+    @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<List<BillResponse>>> getBillsByStatus(@PathVariable String status) {
+        return ResponseEntity.ok(ApiResponse.success("Bills retrieved", billService.getBillsByStatus(status)));
+    }
+
+    /**
+     * Get bill by appointment ID
+     */
+    @GetMapping("/appointment/{appointmentId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<BillResponse>> getBillByAppointment(@PathVariable Long appointmentId) {
+        return ResponseEntity.ok(ApiResponse.success("Bill retrieved", billService.getBillByAppointment(appointmentId)));
+    }
+
+    /**
+     * Get bills by patient
+     */
+    @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN') " +
+            "or @patientSecurity.isOwnPatientId(#patientId)")
+    public ResponseEntity<ApiResponse<List<BillResponse>>> getBillsByPatient(@PathVariable Long patientId) {
+        return ResponseEntity.ok(ApiResponse.success("Bills retrieved", billService.getBillsByPatient(patientId)));
+    }
+
+    /**
+     * Get single bill by ID
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR')")
-    public ResponseEntity<ApiResponse<PatientResponse>> getPatientById(@PathVariable Long id) {
-        PatientResponse response = patientService.getPatientById(id);
-        return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
-    }
-
-    /**
-     * Get patient by user ID (for patient dashboard)
-     */
-    @GetMapping("/by-user/{userId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR') " +
-            "or @patientSecurity.isOwnUserId(#userId)")
-    public ResponseEntity<ApiResponse<PatientResponse>> getPatientByUserId(@PathVariable Long userId) {
-        PatientResponse response = patientService.getPatientByUserId(userId);
-        return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
-    }
-
-    /**
-     * Search patients by name, email, or phone
-     */
-    @GetMapping("/search")
-    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR')")
-    public ResponseEntity<ApiResponse<List<PatientResponse>>> searchPatients(
-            @RequestParam String query
-    ) {
-        List<PatientResponse> patients = patientService.searchPatients(query);
-        return ResponseEntity.ok(ApiResponse.success("Search results", patients));
+    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<BillResponse>> getBillById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Bill retrieved", billService.getBillById(id)));
     }
 }

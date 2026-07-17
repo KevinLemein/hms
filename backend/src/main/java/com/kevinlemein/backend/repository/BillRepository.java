@@ -2,6 +2,8 @@ package com.kevinlemein.backend.repository;
 
 import com.kevinlemein.backend.model.Bill;
 import com.kevinlemein.backend.model.PaymentStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,5 +25,5 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     List<Bill> findByPaymentStatus(@Param("status") PaymentStatus status);
 
     @Query("SELECT b FROM Bill b ORDER BY b.createdAt DESC")
-    List<Bill> findAllOrderByCreatedAtDesc();
+    Page<Bill> findAllOrderByCreatedAtDesc(Pageable pageable);
 }

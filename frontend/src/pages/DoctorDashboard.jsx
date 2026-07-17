@@ -481,7 +481,7 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
     const loadPatients = async () => {
         try {
             const r = await patientService.getAllPatients();
-            if (r.success) setPatients(r.data);
+            if (r.success) setPatients(r.data.content);
         } catch (err) {
             console.error(err);
             showError("Failed to load patient list");

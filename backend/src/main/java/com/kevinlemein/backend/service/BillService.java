@@ -8,6 +8,8 @@ import com.kevinlemein.backend.repository.BillRepository;
 import com.kevinlemein.backend.repository.AppointmentRepository;
 import com.kevinlemein.backend.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -127,13 +129,11 @@ public class BillService {
     }
 
     /**
-     * Get all bills
+     * Get all bills, paginated (defaults handled by the controller)
      */
-    public List<BillResponse> getAllBills() {
-        return billRepository.findAllOrderByCreatedAtDesc()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PagedResponse<BillResponse> getAllBills(Pageable pageable) {
+        Page<Bill> bills = billRepository.findAllOrderByCreatedAtDesc(pageable);
+        return PagedResponse.from(bills.map(this::mapToResponse));
     }
 
     /**

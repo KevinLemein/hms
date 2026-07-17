@@ -24,7 +24,7 @@ export default function ReceptionistDashboard() {
         setLoadingPatients(true);
         try {
             const response = await patientService.getAllPatients();
-            if (response.success) setPatients(response.data);
+            if (response.success) setPatients(response.data.content);
         } catch (err) {
             console.error(err);
             showError(err.response?.data?.message || "Failed to load patients");
@@ -244,7 +244,7 @@ function BookAppointmentForm({ onSuccess }) {
     const loadData = async () => {
         try {
             const [pRes, dRes] = await Promise.all([patientService.getAllPatients(), receptionistService.getDoctors()]);
-            if (pRes.success) setPatients(pRes.data);
+            if (pRes.success) setPatients(pRes.data.content);
             if (dRes.success) setDoctors(dRes.data);
         } catch (err) {
             console.error(err);
@@ -446,10 +446,13 @@ function BillingView({ onAlert }) {
     const fetchBills = async () => {
         setLoading(true);
         try {
-            const res = filter === "all"
-                ? await billService.getAll()
-                : await billService.getByStatus(filter);
-            if (res.success) setBills(res.data);
+            if (filter === "all") {
+                const res = await billService.getAll();
+                if (res.success) setBills(res.data.content);
+            } else {
+                const res = await billService.getByStatus(filter);
+                if (res.success) setBills(res.data);
+            }
         } catch (err) {
             console.error(err);
             showError(err.response?.data?.message || "Failed to load bills");

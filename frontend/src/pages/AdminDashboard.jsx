@@ -18,7 +18,9 @@ export default function AdminDashboard() {
         try {
             const response = await adminService.getAllUsers();
             if (response.success) {
-                setUsers(response.data);
+                // getAllUsers now returns a paginated shape:
+                // { content, page, size, totalElements, totalPages, last }
+                setUsers(response.data.content);
             }
         } catch (err) {
             setError("Failed to load users");
