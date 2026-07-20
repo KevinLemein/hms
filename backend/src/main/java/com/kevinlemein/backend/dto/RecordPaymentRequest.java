@@ -1,16 +1,18 @@
 package com.kevinlemein.backend.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import com.kevinlemein.backend.model.PaymentMethod;
+import jakarta.validation.constraints.*;
+import lombok.Data;
+
+import java.math.BigDecimal;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class RecordPaymentRequest {
+    @NotNull @DecimalMin(value = "0.01", message = "Amount must be positive")
+    private BigDecimal amount;
 
-    @NotBlank(message = "Payment method is required")
-    private String paymentMethod; // CASH, MPESA, CARD
+    @NotNull(message = "Payment method is required")
+    private PaymentMethod method;
 
-    private String paymentReference; // M-Pesa transaction code or card reference
+    private String reference; // required for MPESA/CARD, validated in service
 }

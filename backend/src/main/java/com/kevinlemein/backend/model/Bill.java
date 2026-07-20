@@ -14,7 +14,6 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class Bill {
 
     @Id
@@ -29,45 +28,67 @@ public class Bill {
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount;
-
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", nullable = false)
+    @Column(name = "status", nullable = false)
     @Builder.Default
-    private PaymentStatus paymentStatus = PaymentStatus.PENDING;
+    private BillStatus status = BillStatus.OPEN;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method")
-    private PaymentMethod paymentMethod;
-
-    @Column(name = "payment_reference")
-    private String paymentReference;
+    @Column(name = "cancel_reason")
+    private String cancelReason;
 
     @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<BillDrugs> items = new ArrayList<>();
+    private List<BillLineItem> lineItems = new ArrayList<>();
+
+    @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Payment> payments = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "paid_at")
-    private LocalDateTime paidAt;
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = createdAt;
     }
 
-    public void addItem(BillDrugs item) {
-        items.add(item);
-        item.setBill(this);
-        recalculateTotal();
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
-    public void recalculateTotal() {
-        this.totalAmount = items.stream()
-                .map(BillDrugs::getTotalPrice)
+    // --- Derived values, never stored, never able to drift ---
+
+    public BigDecimal getTotalAmount() {
+        return lineItems.stream()
+                .map(BillLineItem::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getAmountPaid() {
+        return payments.stream()
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal getBalance() {
+        return getTotalAmount().subtract(getAmountPaid());
+    }
+
+    public void recalculateStatus() {
+        if (status == BillStatus.CANCELLED) return; // terminal, never auto-transitions out
+        BigDecimal paid = getAmountPaid();
+        BigDecimal total = getTotalAmount();
+        if (paid.compareTo(BigDecimal.ZERO) == 0) {
+            status = BillStatus.OPEN;
+        } else if (paid.compareTo(total) >= 0) {
+            status = BillStatus.PAID;
+        } else {
+            status = BillStatus.PARTIALLY_PAID;
+        }
     }
 }

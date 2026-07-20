@@ -4,17 +4,15 @@ import com.kevinlemein.backend.dto.*;
 import com.kevinlemein.backend.exception.InvalidRequestException;
 import com.kevinlemein.backend.exception.ResourceNotFoundException;
 import com.kevinlemein.backend.model.*;
-import com.kevinlemein.backend.repository.BillRepository;
-import com.kevinlemein.backend.repository.AppointmentRepository;
-import com.kevinlemein.backend.repository.PatientRepository;
+import com.kevinlemein.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,190 +24,189 @@ public class BillService {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
 
-    /**
-     * Create or update a bill from a prescription.
-     * Called by the frontend after a prescription is created via the .NET API.
-     * If a bill already exists for the appointment, the new item is added to it.
-     */
     @Transactional
-    public BillResponse createFromPrescription(CreateBillFromPrescriptionRequest request) {
+    public BillResponse createBill(CreateBillRequest request) {
+        Patient patient = patientRepository.findById(request.getPatientId())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
 
-        Appointment appointment = appointmentRepository.findById(request.getAppointmentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
+        Appointment appointment = null;
+        if (request.getAppointmentId() != null) {
+            appointment = appointmentRepository.findById(request.getAppointmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
 
-        Patient patient = appointment.getPatient();
-        if (patient == null) {
-            throw new ResourceNotFoundException("Patient not found for this appointment");
+            // One bill per appointment — return the existing one instead of creating a duplicate.
+            var existing = billRepository.findByAppointmentId(request.getAppointmentId());
+            if (existing.isPresent()) {
+                return mapToResponse(existing.get());
+            }
         }
 
-        // Find existing bill or create new one
-        Bill bill = billRepository.findByAppointmentId(request.getAppointmentId())
-                .orElseGet(() -> {
-                    Bill newBill = Bill.builder()
-                            .appointment(appointment)
-                            .patient(patient)
-                            .totalAmount(BigDecimal.ZERO)
-                            .paymentStatus(PaymentStatus.PENDING)
-                            .build();
-                    return billRepository.save(newBill);
-                });
-
-        // Add prescription as a bill item
-        BillDrugs item = BillDrugs.builder()
-                .description(request.getDrugName())
-                .quantity(request.getQuantity())
-                .unitPrice(request.getUnitPrice())
-                .totalPrice(request.getUnitPrice().multiply(BigDecimal.valueOf(request.getQuantity())))
-                .drugId(request.getDrugId())
-                .prescriptionId(request.getPrescriptionId())
+        Bill bill = Bill.builder()
+                .patient(patient)
+                .appointment(appointment)
+                .status(BillStatus.OPEN)
                 .build();
 
-        bill.addItem(item);
-        Bill saved = billRepository.save(bill);
-        return mapToResponse(saved);
+        return mapToResponse(billRepository.save(bill));
     }
 
     /**
-     * Add an extra charge to an existing bill (receptionist adds consultation fee, lab fee, etc.)
+     * Add a charge to a bill. Idempotent by (source, sourceReferenceId) at the DB level —
+     * calling this twice for the same dispensing record or consultation is a no-op,
+     * not a duplicate charge, even under concurrent requests.
      */
     @Transactional
-    public BillResponse addItem(Long billId, AddBillItemRequest request) {
-
+    public BillResponse addLineItem(Long billId, AddLineItemRequest request) {
         Bill bill = billRepository.findById(billId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bill not found"));
 
-        if (bill.getPaymentStatus() == PaymentStatus.PAID) {
-            throw new InvalidRequestException("Cannot add items to a paid bill");
+        if (bill.getStatus() == BillStatus.CANCELLED) {
+            throw new InvalidRequestException("Cannot add charges to a cancelled bill");
+        }
+        if (bill.getStatus() == BillStatus.PAID) {
+            throw new InvalidRequestException("Cannot add charges to a fully paid bill — create a new bill instead");
         }
 
-        BillDrugs item = BillDrugs.builder()
+        BillLineItem item = BillLineItem.builder()
+                .bill(bill)
                 .description(request.getDescription())
                 .quantity(request.getQuantity())
                 .unitPrice(request.getUnitPrice())
-                .totalPrice(request.getUnitPrice().multiply(BigDecimal.valueOf(request.getQuantity())))
+                .source(request.getSource())
+                .sourceReferenceId(request.getSourceReferenceId())
                 .build();
 
-        bill.addItem(item);
-        Bill saved = billRepository.save(bill);
-        return mapToResponse(saved);
+        bill.getLineItems().add(item);
+        bill.recalculateStatus();
+
+        try {
+            billRepository.save(bill);
+            billRepository.flush(); // force the unique-constraint check now, inside this try block
+        } catch (DataIntegrityViolationException e) {
+            // Someone already billed this exact source+reference (race condition or retry).
+            // Not an error from the caller's perspective — return current state.
+            return mapToResponse(billRepository.findById(billId).orElseThrow());
+        }
+
+        return mapToResponse(bill);
     }
 
-    /**
-     * Record a payment for a bill
-     */
     @Transactional
-    public BillResponse recordPayment(Long billId, RecordPaymentRequest request) {
-
+    public BillResponse recordPayment(Long billId, RecordPaymentRequest request, Long recordedByUserId) {
         Bill bill = billRepository.findById(billId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bill not found"));
 
-        if (bill.getPaymentStatus() == PaymentStatus.PAID) {
-            throw new InvalidRequestException("Bill is already paid");
+        if (bill.getStatus() == BillStatus.CANCELLED) {
+            throw new InvalidRequestException("Cannot record payment on a cancelled bill");
+        }
+        if (bill.getStatus() == BillStatus.PAID) {
+            throw new InvalidRequestException("Bill is already fully paid");
+        }
+        if ((request.getMethod() == PaymentMethod.MPESA || request.getMethod() == PaymentMethod.CARD)
+                && (request.getReference() == null || request.getReference().isBlank())) {
+            throw new InvalidRequestException(request.getMethod() + " payments require a transaction reference");
+        }
+        if (request.getAmount().compareTo(bill.getBalance()) > 0) {
+            throw new InvalidRequestException(
+                    "Payment amount (%.2f) exceeds outstanding balance (%.2f)"
+                            .formatted(request.getAmount(), bill.getBalance()));
         }
 
-        PaymentMethod method;
-        try {
-            method = PaymentMethod.valueOf(request.getPaymentMethod().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new InvalidRequestException("Invalid payment method: " + request.getPaymentMethod());
-        }
+        Payment payment = Payment.builder()
+                .bill(bill)
+                .amount(request.getAmount())
+                .method(request.getMethod())
+                .reference(request.getReference())
+                .recordedByUserId(recordedByUserId)
+                .build();
 
-        // Validate M-Pesa reference
-        if (method == PaymentMethod.MPESA && (request.getPaymentReference() == null || request.getPaymentReference().isBlank())) {
-            throw new InvalidRequestException("M-Pesa transaction code is required");
-        }
+        bill.getPayments().add(payment);
+        bill.recalculateStatus();
 
-        bill.setPaymentMethod(method);
-        bill.setPaymentReference(request.getPaymentReference());
-        bill.setPaymentStatus(PaymentStatus.PAID);
-        bill.setPaidAt(LocalDateTime.now());
-
-        Bill saved = billRepository.save(bill);
-        return mapToResponse(saved);
+        return mapToResponse(billRepository.save(bill));
     }
 
-    /**
-     * Get all bills, paginated (defaults handled by the controller)
-     */
+    @Transactional
+    public BillResponse cancelBill(Long billId, String reason) {
+        Bill bill = billRepository.findById(billId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bill not found"));
+
+        if (bill.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
+            throw new InvalidRequestException("Cannot cancel a bill that already has payments recorded — refund instead");
+        }
+
+        bill.setStatus(BillStatus.CANCELLED);
+        bill.setCancelReason(reason);
+        return mapToResponse(billRepository.save(bill));
+    }
+
     public PagedResponse<BillResponse> getAllBills(Pageable pageable) {
-        Page<Bill> bills = billRepository.findAllOrderByCreatedAtDesc(pageable);
+        Page<Bill> bills = billRepository.findAllByOrderByCreatedAtDesc(pageable);
         return PagedResponse.from(bills.map(this::mapToResponse));
     }
 
-    /**
-     * Get bills by payment status
-     */
     public List<BillResponse> getBillsByStatus(String status) {
-        PaymentStatus paymentStatus;
+        BillStatus billStatus;
         try {
-            paymentStatus = PaymentStatus.valueOf(status.toUpperCase());
+            billStatus = BillStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new InvalidRequestException("Invalid status: " + status);
         }
-        return billRepository.findByPaymentStatus(paymentStatus)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        return billRepository.findByStatus(billStatus).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
     }
 
-    /**
-     * Get bills by patient
-     */
     public List<BillResponse> getBillsByPatient(Long patientId) {
-        return billRepository.findByPatientId(patientId)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        return billRepository.findByPatientId(patientId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
     }
 
-    /**
-     * Get bill by appointment
-     */
     public BillResponse getBillByAppointment(Long appointmentId) {
         Bill bill = billRepository.findByAppointmentId(appointmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("No bill found for this appointment"));
         return mapToResponse(bill);
     }
 
-    /**
-     * Get bill by ID
-     */
     public BillResponse getBillById(Long id) {
-        Bill bill = billRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Bill not found"));
-        return mapToResponse(bill);
+        return mapToResponse(billRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Bill not found")));
     }
 
     private BillResponse mapToResponse(Bill bill) {
         Patient patient = bill.getPatient();
-        User patientUser = patient.getUser();
+        User user = patient.getUser();
 
         return BillResponse.builder()
                 .id(bill.getId())
                 .appointmentId(bill.getAppointment() != null ? bill.getAppointment().getId() : null)
                 .patientId(patient.getId())
-                .patientFirstName(patientUser.getFirstName())
-                .patientLastName(patientUser.getLastName())
+                .patientFirstName(user.getFirstName())
+                .patientLastName(user.getLastName())
                 .patientPhone(patient.getPhoneNumber())
+                .status(bill.getStatus().name())
                 .totalAmount(bill.getTotalAmount())
-                .paymentStatus(bill.getPaymentStatus().name())
-                .paymentMethod(bill.getPaymentMethod() != null ? bill.getPaymentMethod().name() : null)
-                .paymentReference(bill.getPaymentReference())
-                .items(bill.getItems().stream().map(this::mapItemToResponse).collect(Collectors.toList()))
+                .amountPaid(bill.getAmountPaid())
+                .balance(bill.getBalance())
+                .lineItems(bill.getLineItems().stream().map(this::mapItem).collect(Collectors.toList()))
+                .payments(bill.getPayments().stream().map(this::mapPayment).collect(Collectors.toList()))
                 .createdAt(bill.getCreatedAt())
-                .paidAt(bill.getPaidAt())
+                .updatedAt(bill.getUpdatedAt())
                 .build();
     }
 
-    private BillItemResponse mapItemToResponse(BillDrugs item) {
-        return BillItemResponse.builder()
-                .id(item.getId())
-                .description(item.getDescription())
-                .quantity(item.getQuantity())
-                .unitPrice(item.getUnitPrice())
-                .totalPrice(item.getTotalPrice())
-                .drugId(item.getDrugId())
-                .prescriptionId(item.getPrescriptionId())
+    private LineItemResponse mapItem(BillLineItem i) {
+        return LineItemResponse.builder()
+                .id(i.getId()).description(i.getDescription()).quantity(i.getQuantity())
+                .unitPrice(i.getUnitPrice()).totalPrice(i.getTotalPrice())
+                .source(i.getSource().name()).sourceReferenceId(i.getSourceReferenceId())
+                .createdAt(i.getCreatedAt())
+                .build();
+    }
+
+    private PaymentResponse mapPayment(Payment p) {
+        return PaymentResponse.builder()
+                .id(p.getId()).amount(p.getAmount()).method(p.getMethod().name())
+                .reference(p.getReference()).paidAt(p.getPaidAt())
                 .build();
     }
 }

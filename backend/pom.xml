@@ -27,13 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>25</java.version>
-		<!-- Pinned explicitly: Lombok's annotation processor needs a version
-		     with real JDK 25 support (landed in 1.18.42, Sept 2025). Without
-		     an explicit pin here, the version comes from whatever
-		     spring-boot-starter-parent happens to manage, which silently
-		     breaks all Lombok-generated code (getters/setters/builders) on
-		     JDK 25 if it's older than that. -->
+		<java.version>21</java.version>
 		<lombok.version>1.18.42</lombok.version>
 	</properties>
 	<dependencies>
@@ -51,7 +45,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webmvc</artifactId>
+			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
 		<!-- JWT Support -->
@@ -90,24 +84,16 @@
 			<version>${lombok.version}</version>
 			<optional>true</optional>
 		</dependency>
+
+		<!-- Unified Spring Boot Test Starter (Replaces the non-existent -test dependencies) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-validation-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -117,12 +103,10 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<!-- Pinned: an unpinned/older version inherited from the parent may not
-				     correctly wire up annotationProcessorPaths on JDK 25, given JDK 23+
-				     disables implicit classpath annotation-processor discovery
-				     (JDK-8321319) unless explicitly configured like below. -->
-				<version>3.15.0</version>
+				<version>3.13.0</version>
 				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
