@@ -7,6 +7,7 @@ const roleLabels = {
     ROLE_ADMIN: "Admin",
     ROLE_DOCTOR: "Doctor",
     ROLE_RECEPTIONIST: "Receptionist",
+    //ROLE_PHARMACIST: "Pharmacist",
     ROLE_PATIENT: "Patient",
 };
 
@@ -35,8 +36,7 @@ export default function Login() {
         try {
             const response = await login(formData);
             if (response.success) {
-                // If they were bounced here from a protected route, send them
-                // back to it; otherwise land on their role's dashboard.
+
                 navigate(from || dashboardPathForRole(response.data.role), { replace: true });
             } else {
                 setError(response.message || "Login failed");
@@ -48,12 +48,6 @@ export default function Login() {
         }
     };
 
-    // Already have a valid session — don't show the login form again.
-    // Landing here happens if someone hits /login directly (bookmark,
-    // typed URL, stale link) while still signed in; showing the form in
-    // that case is confusing since submitting it just re-authenticates the
-    // same account. Show what's going on instead and offer a clear way
-    // forward, matching what most sites do when you're already signed in.
     if (isAuthenticated && user) {
         const destination = dashboardPathForRole(user.role);
         return (
