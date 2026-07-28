@@ -20,7 +20,6 @@ export default function Login() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const from = location.state?.from?.pathname;
     const sessionExpired = location.state?.sessionExpired;
 
     const handleChange = (e) => {
@@ -36,8 +35,16 @@ export default function Login() {
         try {
             const response = await login(formData);
             if (response.success) {
-
-                navigate(from || dashboardPathForRole(response.data.role), { replace: true });
+                // Always land on the new user's own dashboard. We used to
+                // prefer `from` (the page ProtectedRoute redirected them
+                // from) so users returned to what they were originally
+                // trying to reach — but `from` has no idea which role is
+                // logging in. If it pointed to a page for a different role
+                // (e.g. left over from a previous session, a stale tab, or
+                // browser back-navigation after logout), ProtectedRoute
+                // would correctly block it and bounce the user to
+                // /unauthorized, which looked like a broken login.
+                navigate(dashboardPathForRole(response.data.role), { replace: true });
             } else {
                 setError(response.message || "Login failed");
             }
