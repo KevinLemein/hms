@@ -337,7 +337,6 @@ export default function DoctorDashboard() {
                 {showPrescriptionModal && (
                     <PrescriptionModal
                         prefill={showPrescriptionModal}
-                        doctorId={user.id}
                         drugs={drugs}
                         onClose={() => setShowPrescriptionModal(null)}
                         onCreated={handlePrescriptionCreated}
@@ -460,7 +459,7 @@ function AllAppointmentsView({ appointments, statusColors, prescriptions, onPres
     );
 }
 
-function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
+function PrescriptionModal({ prefill, drugs, onClose, onCreated }) {
     const { showError } = useToast();
     const [patients, setPatients] = useState([]);
     const [patientSearch, setPatientSearch] = useState(prefill.patientName || "");
@@ -470,7 +469,7 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
             ? { id: prefill.patientId, name: prefill.patientName, email: prefill.patientEmail || "", phone: prefill.patientPhone || "" }
             : null
     );
-    const [formData, setFormData] = useState({ drugId: "", dosage: "", duration: "", notes: "" });
+    const [formData, setFormData] = useState({ drugId: "", dosage: "", duration: "", notes: "", quantity: "1" });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -519,32 +518,65 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
         if (!formData.drugId) { setError("Please select a drug"); return; }
         if (!formData.dosage) { setError("Dosage is required"); return; }
         if (!formData.duration) { setError("Duration is required"); return; }
+        if (!formData.quantity || Number(formData.quantity) < 1) { setError("Quantity must be at least 1"); return; }
         if (!prefill.appointmentId) { setError("No appointment linked. Please prescribe from the All Appointments tab."); return; }
 
         setLoading(true);
         setError("");
         try {
 
-            await prescriptionService.create({
+            // doctorId and createdOn are no longer sent -- the backend derives
+            // doctorId from the authenticated JWT and sets createdOn itself.
+            const prescriptionResponse = await prescriptionService.create({
                 appointmentId: prefill.appointmentId,
                 drugId: Number(formData.drugId),
                 dossage: formData.dosage,
                 duration: formData.duration,
                 notes: formData.notes,
-                doctorId: doctorId,
-                createdOn: new Date().toISOString(),
+                quantity: Number(formData.quantity),
             });
 
-            // Step 2: Auto-generate bill via Spring Boot
+            // Now that prescriptions are backed by Spring Boot (not .NET),
+            // this is a deterministic ApiResponse envelope: {success, data: {id, ...}}.
+            const prescriptionId = prescriptionResponse?.data?.id ?? null;
+
+            // Step 2: bill the drug charge on the Spring Boot side.
+            // The billing model separates "create a bill" from "add a
+            // charge to a bill" -- a bill is meant to be shared across every
+            // charge for one appointment (consultation fee, each drug, labs,
+            // etc), not recreated per charge. So: look up whether this
+            // appointment already has a bill; if not, create one; either way,
+            // add this drug as a line item on it.
             const selectedDrug = drugs.find(d => d.id === Number(formData.drugId));
             if (selectedDrug) {
                 try {
-                    await billService.createFromPrescription({
-                        appointmentId: prefill.appointmentId,
-                        drugName: `${selectedDrug.name} (${selectedDrug.milligrams})`,
-                        quantity: 1,
+                    let bill;
+                    try {
+                        const existing = await billService.getByAppointment(prefill.appointmentId);
+                        bill = existing.data;
+                    } catch (lookupErr) {
+                        if (lookupErr.response?.status === 404) {
+                            const created = await billService.createBill({
+                                patientId: selectedPatient.id,
+                                appointmentId: prefill.appointmentId,
+                            });
+                            bill = created.data;
+                        } else {
+                            throw lookupErr;
+                        }
+                    }
+
+                    await billService.addItem(bill.id, {
+                        description: `${selectedDrug.name} (${selectedDrug.milligrams})`,
+                        // Bill the same quantity actually dispensed, not a
+                        // hardcoded 1 -- keeps billing and stock in sync.
+                        quantity: Number(formData.quantity),
                         unitPrice: selectedDrug.cost || 0,
-                        drugId: selectedDrug.id,
+                        source: "DRUG_DISPENSE",
+                        // Ties this line item to this specific prescription so the
+                        // same prescription can never be billed twice (enforced by
+                        // a DB-level unique constraint on (source, sourceReferenceId)).
+                        sourceReferenceId: prescriptionId,
                     });
                 } catch (billErr) {
                     // Prescription already saved successfully at this point — this is a
@@ -658,6 +690,28 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
                             placeholder="e.g. 2 (tablets/capsules)"
                             className={inputClass}
                         />
+                    </div>
+
+                    {/* Quantity dispensed */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                            Quantity Dispensed
+                            <span className="text-slate-400 font-normal"> (deducted from stock)</span>
+                        </label>
+                        <input
+                            type="number"
+                            min="1"
+                            value={formData.quantity}
+                            onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                            required
+                            className={inputClass}
+                        />
+                        {formData.drugId && (() => {
+                            const d = drugs.find(dr => dr.id === Number(formData.drugId));
+                            return d ? (
+                                <p className="text-xs text-slate-400 mt-1">{d.quantity} in stock</p>
+                            ) : null;
+                        })()}
                     </div>
 
                     {/* Duration */}
