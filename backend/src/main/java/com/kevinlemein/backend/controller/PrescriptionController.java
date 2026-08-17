@@ -25,8 +25,10 @@ public class PrescriptionController {
     public ResponseEntity<ApiResponse<PrescriptionResponse>> createPrescription(
             @Valid @RequestBody CreatePrescriptionRequest request
     ) {
-        Long doctorId = currentUserProvider.getCurrentUserId();
-        PrescriptionResponse response = prescriptionService.createPrescription(request, doctorId);
+        // This is users.id, not doctors.id -- PrescriptionService resolves
+        // the doctors.id lookup internally (see its Javadoc for why).
+        Long authenticatedUserId = currentUserProvider.getCurrentUserId();
+        PrescriptionResponse response = prescriptionService.createPrescription(request, authenticatedUserId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Prescription created", response));
     }

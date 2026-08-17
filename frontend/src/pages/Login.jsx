@@ -35,15 +35,7 @@ export default function Login() {
         try {
             const response = await login(formData);
             if (response.success) {
-                // Always land on the new user's own dashboard. We used to
-                // prefer `from` (the page ProtectedRoute redirected them
-                // from) so users returned to what they were originally
-                // trying to reach — but `from` has no idea which role is
-                // logging in. If it pointed to a page for a different role
-                // (e.g. left over from a previous session, a stale tab, or
-                // browser back-navigation after logout), ProtectedRoute
-                // would correctly block it and bounce the user to
-                // /unauthorized, which looked like a broken login.
+
                 navigate(dashboardPathForRole(response.data.role), { replace: true });
             } else {
                 setError(response.message || "Login failed");
@@ -56,38 +48,7 @@ export default function Login() {
     };
 
     if (isAuthenticated && user) {
-        const destination = dashboardPathForRole(user.role);
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8">
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
-                    <div className="w-14 h-14 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                        <svg className="w-7 h-7 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-800">You're already signed in</h2>
-                    <p className="text-slate-500 mt-1">
-                        {user.username} ({user.email})
-                        {roleLabels[user.role] && (
-                            <span className="block text-sm mt-0.5">{roleLabels[user.role]}</span>
-                        )}
-                    </p>
-
-                    <button
-                        onClick={() => navigate(destination, { replace: true })}
-                        className="w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition-all"
-                    >
-                        Continue to dashboard
-                    </button>
-                    <button
-                        onClick={logout}
-                        className="w-full mt-3 text-slate-500 hover:text-slate-700 text-sm font-medium py-2 transition-all"
-                    >
-                        Sign in with a different account
-                    </button>
-                </div>
-            </div>
-        );
+        return <Navigate to={dashboardPathForRole(user.role)} replace />;
     }
 
     return (

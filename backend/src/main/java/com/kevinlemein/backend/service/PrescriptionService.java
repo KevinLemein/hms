@@ -6,9 +6,11 @@ import com.kevinlemein.backend.dto.UpdatePrescriptionRequest;
 import com.kevinlemein.backend.exception.InvalidRequestException;
 import com.kevinlemein.backend.exception.ResourceNotFoundException;
 import com.kevinlemein.backend.model.Appointment;
+import com.kevinlemein.backend.model.Doctor;
 import com.kevinlemein.backend.model.Drug;
 import com.kevinlemein.backend.model.Prescription;
 import com.kevinlemein.backend.repository.AppointmentRepository;
+import com.kevinlemein.backend.repository.DoctorRepository;
 import com.kevinlemein.backend.repository.DrugRepository;
 import com.kevinlemein.backend.repository.PrescriptionRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class PrescriptionService {
     private final PrescriptionRepository prescriptionRepository;
     private final DrugRepository drugRepository;
     private final AppointmentRepository appointmentRepository;
+    private final DoctorRepository doctorRepository;
 
     /**
      * Creates a prescription and decrements the drug's stock in the same
@@ -32,9 +35,21 @@ public class PrescriptionService {
      * never drift out of sync with actual prescriptions issued.
      */
     @Transactional
-    public PrescriptionResponse createPrescription(CreatePrescriptionRequest request, Long doctorId) {
+    public PrescriptionResponse createPrescription(CreatePrescriptionRequest request, Long authenticatedUserId) {
         Appointment appointment = appointmentRepository.findById(request.getAppointmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
+
+        // prescriptions.doctor_id has a foreign key to doctors.id, NOT
+        // users.id -- these are different ids. A user with ROLE_DOCTOR must
+        // also have a corresponding row in `doctors` (created automatically
+        // now when an admin/receptionist creates a doctor account -- see
+        // UserService.createUser). If this lookup fails for an existing
+        // doctor account created before that fix, they'll need a one-time
+        // backfill row inserted directly, not something this method can fix
+        // for them automatically.
+        Doctor doctor = doctorRepository.findByUserId(authenticatedUserId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No doctor profile found for this account. Ask an admin to check your account setup."));
 
         Drug drug = drugRepository.findById(request.getDrugId())
                 .orElseThrow(() -> new ResourceNotFoundException("Drug not found"));
@@ -50,7 +65,7 @@ public class PrescriptionService {
 
         Prescription prescription = Prescription.builder()
                 .appointmentId(appointment.getId())
-                .doctorId(doctorId)
+                .doctorId(doctor.getId())
                 .drugId(drug.getId())
                 .dossage(request.getDossage())
                 .duration(request.getDuration())

@@ -1,6 +1,14 @@
-import { Link } from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
+import { useAuth} from "../context/AuthContext.jsx"
 
 export default function Home() {
+    const { user, isAuthenticated, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate("/", {replace : true});
+    }
     return (
         <div className="min-h-screen bg-slate-50">
             {/* Navbar */}
@@ -15,6 +23,20 @@ export default function Home() {
                         <span className="text-lg font-bold text-slate-800">MediCare HMS</span>
                     </div>
                     <div className="flex items-center gap-3">
+                        {isAuthenticated && user ? (
+                            <>
+                               <span className="text-sm font-medium text-slate-600">
+                                    {user.username}
+                                </span>
+                               <button
+                                   onClick={() => handleLogout}
+                                   className="px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-all"
+                               >
+                                   Sign Out
+                                   </button>
+                            </>
+
+                        ) : (
 
                         <Link
                             to="/login"
@@ -22,6 +44,7 @@ export default function Home() {
                         >
                            Sign In
                         </Link>
+                            )}
                     </div>
                 </div>
             </nav>
