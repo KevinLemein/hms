@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MediCare API Documentation</title>
+  <style>
+    body {
+      font-family: Calibri, Arial, sans-serif;
+      font-size: 11pt;
+      color: #222;
+      margin: 2cm 2.5cm;
+      line-height: 1.5;
+    }
+    h1 {
+      font-size: 22pt;
+      color: #1F4E79;
+      border-bottom: 2px solid #1F4E79;
+      padding-bottom: 6px;
+      margin-top: 0;
+    }
+    h2 {
+      font-size: 16pt;
+      color: #2E75B6;
+      border-bottom: 1px solid #2E75B6;
+      padding-bottom: 4px;
+      margin-top: 28px;
+    }
+    h3 {
+      font-size: 13pt;
+      color: #1F4E79;
+      margin-top: 20px;
+      margin-bottom: 4px;
+    }
+    h4 {
+      font-size: 11pt;
+      color: #333;
+      margin-top: 14px;
+      margin-bottom: 2px;
+    }
+    p { margin: 4px 0 8px 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 18px 0;
+      font-size: 10.5pt;
+    }
+    th {
+      background-color: #2E75B6;
+      color: #fff;
+      padding: 7px 10px;
+      text-align: left;
+      font-weight: bold;
+    }
+    td {
+      padding: 6px 10px;
+      border: 1px solid #BDD7EE;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background-color: #EFF5FB; }
+    .method {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 10pt;
+      color: #fff;
+      min-width: 58px;
+      text-align: center;
+    }
+    .get    { background-color: #28a745; }
+    .post   { background-color: #007bff; }
+    .put    { background-color: #fd7e14; }
+    .delete { background-color: #dc3545; }
+    .endpoint-path {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 10pt;
+      background: #f4f4f4;
+      padding: 2px 7px;
+      border-radius: 3px;
+      border: 1px solid #ddd;
+    }
+    .section-intro {
+      color: #555;
+      font-style: italic;
+      margin-bottom: 10px;
+    }
+    .note {
+      background: #FFF3CD;
+      border-left: 4px solid #FFC107;
+      padding: 8px 14px;
+      margin: 10px 0;
+      font-size: 10pt;
+    }
+    .toc { margin-bottom: 30px; }
+    .toc a { color: #2E75B6; text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    .toc li { margin: 3px 0; }
+    .cover { text-align: center; padding: 60px 0 40px 0; border-bottom: 2px solid #1F4E79; margin-bottom: 40px; }
+    .cover .subtitle { font-size: 14pt; color: #555; margin-top: 8px; }
+    .cover .meta { font-size: 10pt; color: #888; margin-top: 20px; }
+    .divider { border: none; border-top: 1px solid #ddd; margin: 30px 0; }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 10pt;
+      background: #f4f4f4;
+      padding: 1px 5px;
+      border-radius: 2px;
+    }
+    pre {
+      background: #f4f4f4;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 12px 16px;
+      font-size: 9.5pt;
+      font-family: Consolas, "Courier New", monospace;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ COVER PAGE ═══════════════ -->
+<div class="cover">
+  <h1 style="border:none; font-size:28pt; color:#1F4E79;">MediCare REST API</h1>
+  <div class="subtitle">Technical Documentation &mdash; System Administrator Reference</div>
+  <div class="meta">
+    Version 1.0 &nbsp;|&nbsp; April 2026<br/>
+    Platform: ASP.NET Core 10 &nbsp;|&nbsp; Database: PostgreSQL
+  </div>
+</div>
+
+<!-- ═══════════════ TABLE OF CONTENTS ═══════════════ -->
+<h2>Table of Contents</h2>
+<div class="toc">
+  <ol>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#base-url">Base URL &amp; Connection</a></li>
+    <li><a href="#auth">Authentication</a></li>
+    <li><a href="#conventions">General Conventions</a></li>
+    <li><a href="#status-codes">HTTP Status Codes</a></li>
+    <li><a href="#data-models">Data Models</a></li>
+    <li>
+      API Endpoints
+      <ol>
+        <li><a href="#users">Users</a></li>
+        <li><a href="#patients">Patients</a></li>
+        <li><a href="#doctors">Doctors</a></li>
+        <li><a href="#appointments">Appointments</a></li>
+        <li><a href="#appointment-status">Appointment Status</a></li>
+        <li><a href="#medical-records">Medical Records</a></li>
+        <li><a href="#prescriptions">Prescriptions</a></li>
+        <li><a href="#drugs">Drugs</a></li>
+        <li><a href="#payments">Payments</a></li>
+        <li><a href="#gender">Gender</a></li>
+      </ol>
+    </li>
+    <li><a href="#endpoint-summary">Endpoint Summary Table</a></li>
+  </ol>
+</div>
+
+<hr class="divider"/>
+
+<!-- ═══════════════ 1. OVERVIEW ═══════════════ -->
+<h2 id="overview">1. Overview</h2>
+<p>
+  The <strong>MediCare REST API</strong> is the backend data service for the MediCare healthcare management
+  system. It provides full CRUD (Create, Read, Update, Delete) operations for all core entities including
+  patients, doctors, appointments, medical records, prescriptions, payments, and supporting lookup data.
+</p>
+<p>
+  The API is built with <strong>ASP.NET Core 10</strong>, uses <strong>Entity Framework Core</strong> for
+  database access, and connects to a <strong>PostgreSQL</strong> database. All responses are JSON-encoded.
+</p>
+
+<!-- ═══════════════ 2. BASE URL ═══════════════ -->
+<h2 id="base-url">2. Base URL &amp; Connection</h2>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Base URL (Development)</td><td><code>https://localhost:{port}/api</code></td></tr>
+  <tr><td>Database Host</td><td><code>102.218.215.79:5432</code></td></tr>
+  <tr><td>Database Name</td><td><code>medicare</code></td></tr>
+  <tr><td>Database Engine</td><td>PostgreSQL</td></tr>
+  <tr><td>Content-Type</td><td><code>application/json</code></td></tr>
+</table>
+<div class="note">
+  <strong>Note:</strong> Ensure the PostgreSQL server is accessible from the application host.
+  Connection timeout is set to 60 seconds; command timeout is 120 seconds.
+</div>
+
+<!-- ═══════════════ 3. AUTHENTICATION ═══════════════ -->
+<h2 id="auth">3. Authentication</h2>
+<p>
+  All controllers are currently decorated with <code>[AllowAnonymous]</code>.
+  No authentication token is required for any endpoint in the current version.
+</p>
+<div class="note">
+  <strong>Administrator Note:</strong> It is strongly recommended to enable authentication
+  (e.g., JWT Bearer tokens) before deploying to a production environment.
+  The <code>User</code> model includes <code>Role</code> and <code>Password</code> fields
+  intended for future role-based access control.
+</div>
+
+<!-- ═══════════════ 4. CONVENTIONS ═══════════════ -->
+<h2 id="conventions">4. General Conventions</h2>
+<table>
+  <tr><th>Convention</th><th>Detail</th></tr>
+  <tr><td>URL pattern</td><td><code>/api/{ResourceName}</code> or <code>/api/{ResourceName}/{id}</code></td></tr>
+  <tr><td>ID type</td><td>Integer or Long (64-bit) depending on the entity</td></tr>
+  <tr><td>Date format</td><td>ISO 8601 &mdash; <code>yyyy-MM-ddTHH:mm:ss</code></td></tr>
+  <tr><td>Null fields</td><td>Returned as <code>null</code> in JSON, not omitted</td></tr>
+  <tr><td>Related objects</td><td>Navigation properties with <code>[JsonIgnore]</code> are excluded from responses</td></tr>
+  <tr><td>Audit fields</td><td>Most entities include <code>createdOn</code> and <code>createdById</code> from <code>CreateFields</code></td></tr>
+</table>
+
+<!-- ═══════════════ 5. STATUS CODES ═══════════════ -->
+<h2 id="status-codes">5. HTTP Status Codes</h2>
+<table>
+  <tr><th>Code</th><th>Meaning</th><th>When returned</th></tr>
+  <tr><td><strong>200 OK</strong></td><td>Success</td><td>GET requests, POST (Prescriptions), error wrapper responses</td></tr>
+  <tr><td><strong>201 Created</strong></td><td>Resource created</td><td>Successful POST requests (most entities)</td></tr>
+  <tr><td><strong>204 No Content</strong></td><td>Success, no body</td><td>Successful PUT and DELETE requests</td></tr>
+  <tr><td><strong>400 Bad Request</strong></td><td>Invalid request</td><td>ID mismatch on PUT</td></tr>
+  <tr><td><strong>404 Not Found</strong></td><td>Resource missing</td><td>GET/PUT/DELETE with non-existent ID</td></tr>
+  <tr><td><strong>500 Internal Server Error</strong></td><td>Server error</td><td>Returned as a JSON body with <code>code: 500</code> and <code>error</code> message in some endpoints</td></tr>
+</table>
+
+<h4>Standard Error Response Body (where applicable)</h4>
+<pre>{
+  "code": 500,
+  "message": null,
+  "error": "Detailed error message"
+}</pre>
+
+<!-- ═══════════════ 6. DATA MODELS ═══════════════ -->
+<h2 id="data-models">6. Data Models</h2>
+<p class="section-intro">
+  The following tables describe the fields for each entity returned or accepted by the API.
+  Fields marked <em>read-only</em> are computed and should not be sent in request bodies.
+</p>
+
+<h3>User</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Nullable</th><th>Description</th></tr>
+  <tr><td>id</td><td>long</td><td>No</td><td>Primary key</td></tr>
+  <tr><td>firstName</td><td>string</td><td>No</td><td>First name</td></tr>
+  <tr><td>lastName</td><td>string</td><td>No</td><td>Last name</td></tr>
+  <tr><td>email</td><td>string</td><td>No</td><td>Email address</td></tr>
+  <tr><td>username</td><td>string</td><td>No</td><td>Login username</td></tr>
+  <tr><td>password</td><td>string</td><td>No</td><td>Password (should be hashed)</td></tr>
+  <tr><td>role</td><td>string</td><td>Yes</td><td>User role (e.g., Admin, Doctor, Receptionist)</td></tr>
+  <tr><td>enabled</td><td>boolean</td><td>No</td><td>Whether the account is active</td></tr>
+  <tr><td>createdAt</td><td>datetime</td><td>No</td><td>Account creation timestamp</td></tr>
+  <tr><td>updatedAt</td><td>datetime</td><td>Yes</td><td>Last update timestamp</td></tr>
+</table>
+
+<h3>Patient</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Nullable</th><th>Description</th></tr>
+  <tr><td>id</td><td>long</td><td>No</td><td>Primary key</td></tr>
+  <tr><td>patientNumber</td><td>string</td><td>No</td><td>Unique patient identifier</td></tr>
+  <tr><td>surname</td><td>string</td><td>No</td><td>Surname / family name</td></tr>
+  <tr><td>firstName</td><td>string</td><td>No</td><td>First name</td></tr>
+  <tr><td>lastName</td><td>string</td><td>Yes</td><td>Middle or other name</td></tr>
+  <tr><td>idNumber</td><td>string</td><td>Yes</td><td>National ID or passport number</td></tr>
+  <tr><td>phoneNumber</td><td>string</td><td>Yes</td><td>Contact phone number</td></tr>
+  <tr><td>email</td><td>string</td><td>Yes</td><td>Email address</td></tr>
+  <tr><td>occupation</td><td>string</td><td>Yes</td><td>Patient occupation</td></tr>
+  <tr><td>photoUrl</td><td>string</td><td>Yes</td><td>URL to patient photo</td></tr>
+  <tr><td>noKName</td><td>string</td><td>Yes</td><td>Next of kin name</td></tr>
+  <tr><td>noKPhone</td><td>string</td><td>Yes</td><td>Next of kin phone number</td></tr>
+  <tr><td>noKRelationship</td><td>int</td><td>Yes</td><td>Next of kin relationship (lookup ID)</td></tr>
+  <tr><td>genderId</td><td>int</td><td>Yes</td><td>Foreign key to Gender</td></tr>
+  <tr><td>dob</td><td>datetime</td><td>Yes</td><td>Date of birth (format: yyyy/MM/dd)</td></tr>
+  <tr><td>residence</td><td>string</td><td>Yes</td><td>Home address / area of residence</td></tr>
+  <tr><td>age</td><td>int</td><td>Yes</td><td><em>Read-only.</em> Computed from DOB</td></tr>
+  <tr><td>name</td><td>string</td><td>—</td><td><em>Read-only.</em> Full name (Surname + FirstName + LastName)</td></tr>
+  <tr><td>displayName</td><td>string</td><td>—</td><td><em>Read-only.</em> PatientNumber + full name</td></tr>
+  <tr><td>createdOn</td><td>datetime</td><td>No</td><td>Record creation timestamp</td></tr>
+  <tr><td>createdById</td><td>long</td><td>No</td><td>ID of user who created the record</td></tr>
+</table>
+
+<h3>Doctor</h3>
+<p class="section-intro">GET list returns a flattened <strong>DoctorVm</strong> view; GET by ID returns the raw <strong>Doctor</strong> entity.</p>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Nullable</th><th>Description</th></tr>
+  <tr><td>id</td><td>long</td><td>No</td><td>Primary key</td></tr>
+  <tr><td>userId</td><td>long</td><td>No</td><td>Foreign key to User</td></tr>
+  <tr><td>firstName</td><td>string</td><td>Yes</td><td>Doctor first name (from linked User — list only)</td></tr>
+  <tr><td>lastName</td><td>string</td><td>Yes</td><td>Doctor last name (from linked User — list only)</td></tr>
+  <tr><td>specialityId</td><td>int</td><td>Yes</td><td>Foreign key to Speciality</td></tr>
+  <tr><td>speciality</td><td>string</td><td>Yes</td><td>Speciality name (list only)</td></tr>
+  <tr><td>isAvailable</td><td>boolean</td><td>No</td><td>Whether doctor is currently available</td></tr>
+  <tr><td>createdOn</td><td>datetime</td><td>No</td><td>Record creation timestamp</td></tr>
+  <tr><td>createdById</td><td>long</td><td>No</td><td>ID of user who created the record</td></tr>
+</table>
+
+<h3>Appointment</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Nullable</th><th>Description</th></tr>
+  <tr><td>id</td><td>long</td><td>No</td><td>Primary key</td></tr>
+  <tr><td>doctorId</td><td>long</td><td>No</td><td>Foreign key to Doctor</td></tr>
+  <tr><td>patientId</td><td>long</td><td>No</td><td>Foreign key to Patient</td></tr>
+  <tr><td>appointmentDateTime</td><td>datetime</td><td>No</td><td>Scheduled date and time</td></tr>
+  <tr><td>statusId</td><td>int</td><td>Yes</td><td>Foreign key to AppointmentStatus</td></tr>
+  <tr><td>status</td><td>string</td><td>Yes</td><td>Status name (populated in list response)</td></tr>
+  <tr><td>notes</td><td>string</td><td>Yes</td><td>Additional notes</td></tr>
+  <tr><td>reason</td><td>string</td><td>Yes</td><td>Reason for appointment</td></tr>
+  <tr><td>createdAt</td><td>datetime</td><td>No</td><td>Record creation timestamp</td></tr>
+  <tr><td>updatedAt</td><td>datetime</td><td>Yes</td><td>Last update timestamp</td></tr>
+</table>
+
+<h3>AppointmentStatus</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Nullable</th><th>Description</th></tr>
+  <tr><td>id</td><td>int</td><td>No</td><td>Primary key</td></tr>
+  <tr><td>name</td><td>string</td><td>No</td><td>Status label (e.g., Scheduled, Completed, Cancelled)</td></tr>
+  <tr><td>createdOn</td><td>datetime</td><td>No</td><td>Record creation timestamp</td></tr>
+  <tr><td>createdById</td><td>long</td><td>No</td><td>ID of user who created the record</td></tr>
+</table>
+
+<h3>Medical Record</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Nullable</th><th>Description</th></tr>
+  <tr><td>id</td><td>long</td><td>No</td><td>Primary key</td></tr>
+  <tr><td>appointmentId</td><td>long</td><td>Yes</td><td>Foreign key to Appointment</td></tr>
+  <tr><td>diagnosis</td><td>string</td><td>No</td><td>Diagnosis text</td></tr>
+  <tr><td>createdOn</td><td>datetime</td><td>No</td><td>Record creation timestamp</td></tr>
+  <tr><td>createdById</td><td>long</td><td>No</td><td>ID of user who created the record</td></tr>
+</table>
+
+<h3>Prescription</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Nullable</th><th>Description</th></tr>
+  <tr><td>id</td><td>long</td><td>No</td><td>Primary key</td></tr>
+  <tr><td>appointmentId</td><td>long</td><td>Yes</td><td>Foreign key to Appointment</td></tr>
+  <tr><td>drugId</td><td>int</td><td>Yes</td><td>Foreign key to Drug</td></tr>
+  <tr><td>drugName</td><td>string</td><td>—</td><td><em>Read-only.</em> Drug name from linked Drug</td></tr>
+  <tr><td>dossage</td><td>string</td><td>Yes</td><td>Dosage instructions</td></tr>
+  <tr><td>duration</td><td>string</td><td>Yes</td><td>Treatment duration (e.g., "7 days")</td></tr>
+  <tr><td>quantity</td><td>int</td><td>Yes</td><td>Number of units prescribed</td></tr>
+  <tr><td>notes</td><td>string</td><td>Yes</td><td>Additional instructions</td></tr>
+  <tr><td>doctorId</td><td>long</td><td>No</td><td>Foreign key to Doctor who issued the prescription</td></tr>
+  <tr><td>createdOn</td><td>datetime</td><td>No</td><td>Record creation timestamp</td></tr>
+</table>
+
+<h3>Drug</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Nullable</th><th>Description</th></tr>
+  <tr><td>id</td><td>int</td><td>No</td><td>Primary key</td></tr>
+  <tr><td>name</td><td>string</td><td>No</td><td>Drug name</td></tr>
+  <tr><td>milligrams</td><td>string</td><td>Yes</td><td>Strength / dosage amount (e.g., "500mg")</td></tr>
+  <tr><td>cost</td><td>decimal</td><td>Yes</td><td>Unit cost</td></tr>
+  <tr><td>quantity</td><td>int</td><td>Yes</td><td>Stock quantity</td></tr>
+  <tr><td>manufacturerId</td><td>int</td><td>Yes</td><td>Foreign key to Manufacturer (lookup)</td></tr>
+</table>
+
+<h3>Payment</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Nullable</th><th>Description</th></tr>
+  <tr><td>id</td><td>int</td><td>No</td><td>Primary key</td></tr>
+  <tr><td>appointmentId</td><td>long</td><td>No</td><td>Foreign key to Appointment</td></tr>
+  <tr><td>datePaid</td><td>datetime</td><td>No</td><td>Date and time payment was made</td></tr>
+  <tr><td>totalAmount</td><td>decimal</td><td>No</td><td>Total amount paid</td></tr>
+  <tr><td>transactionCode</td><td>string</td><td>Yes</td><td>Payment transaction reference code</td></tr>
+  <tr><td>createdOn</td><td>datetime</td><td>No</td><td>Record creation timestamp</td></tr>
+  <tr><td>createdById</td><td>long</td><td>No</td><td>ID of user who created the record</td></tr>
+</table>
+
+<h3>Gender</h3>
+<table>
+  <tr><th>Field</th><th>Type</th><th>Nullable</th><th>Description</th></tr>
+  <tr><td>id</td><td>int</td><td>No</td><td>Primary key</td></tr>
+  <tr><td>name</td><td>string</td><td>No</td><td>Gender label (e.g., Male, Female)</td></tr>
+</table>
+
+<!-- ═══════════════ 7. ENDPOINTS ═══════════════ -->
+<h2>7. API Endpoints</h2>
+
+<!-- ──────── USERS ──────── -->
+<h2 id="users">7.1 Users</h2>
+<p class="section-intro">Manages system user accounts (administrators, doctors, receptionists, etc.).</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Users</span></h3>
+<p>Returns a list of all users in the system.</p>
+<h4>Response Body (200 OK) — Array of User objects</h4>
+<pre>[
+  {
+    "id": 1,
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@medicare.com",
+    "username": "johndoe",
+    "role": "Admin",
+    "enabled": true,
+    "createdAt": "2026-04-06T15:25:37",
+    "updatedAt": null
+  }
+]</pre>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Users/{id}</span></h3>
+<p>Returns a single user by ID.</p>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Location</th><th>Description</th></tr>
+  <tr><td>id</td><td>int</td><td>URL path</td><td>The unique user ID</td></tr>
+</table>
+<p><strong>Responses:</strong> 200 OK with user object &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method post">POST</span> &nbsp;<span class="endpoint-path">/api/Users</span></h3>
+<p>Creates a new user account.</p>
+<h4>Request Body</h4>
+<pre>{
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "email": "jane.smith@medicare.com",
+  "username": "janesmith",
+  "password": "SecurePassword123",
+  "role": "Receptionist",
+  "enabled": true
+}</pre>
+<p><strong>Responses:</strong> 201 Created with new user object</p>
+
+<h3><span class="method put">PUT</span> &nbsp;<span class="endpoint-path">/api/Users/{id}</span></h3>
+<p>Updates an existing user. The <code>id</code> in the URL must match the <code>id</code> in the request body.</p>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Location</th><th>Description</th></tr>
+  <tr><td>id</td><td>int</td><td>URL path</td><td>The unique user ID</td></tr>
+</table>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 400 Bad Request &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method delete">DELETE</span> &nbsp;<span class="endpoint-path">/api/Users/{id}</span></h3>
+<p>Permanently deletes a user account.</p>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 404 Not Found</p>
+
+<hr class="divider"/>
+
+<!-- ──────── PATIENTS ──────── -->
+<h2 id="patients">7.2 Patients</h2>
+<p class="section-intro">Manages patient demographic and contact records.</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Patients</span></h3>
+<p>Returns a list of all patients.</p>
+<h4>Response Body (200 OK) — Array of Patient objects</h4>
+<pre>[
+  {
+    "id": 1,
+    "patientNumber": "PAT-001",
+    "surname": "Kamau",
+    "firstName": "Peter",
+    "lastName": "Njoroge",
+    "idNumber": "12345678",
+    "phoneNumber": "+254700000001",
+    "email": "peter.kamau@email.com",
+    "occupation": "Teacher",
+    "photoUrl": null,
+    "noKName": "Mary Kamau",
+    "noKPhone": "+254700000002",
+    "noKRelationship": 1,
+    "genderId": 1,
+    "dob": "1985-03-15T00:00:00",
+    "residence": "Nairobi",
+    "age": 41,
+    "name": "Kamau Peter Njoroge",
+    "displayName": "PAT-001 - Kamau Peter",
+    "createdOn": "2026-04-06T15:25:37",
+    "createdById": 1
+  }
+]</pre>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Patients/{id}</span></h3>
+<p>Returns a single patient by ID.</p>
+<p><strong>Responses:</strong> 200 OK with patient object &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method post">POST</span> &nbsp;<span class="endpoint-path">/api/Patients</span></h3>
+<p>Registers a new patient. Omit computed fields (<code>age</code>, <code>name</code>, <code>displayName</code>).</p>
+<h4>Request Body</h4>
+<pre>{
+  "patientNumber": "PAT-002",
+  "surname": "Wanjiru",
+  "firstName": "Grace",
+  "lastName": "",
+  "idNumber": "98765432",
+  "phoneNumber": "+254711000002",
+  "email": "grace.wanjiru@email.com",
+  "genderId": 2,
+  "dob": "1990-07-20T00:00:00",
+  "residence": "Mombasa",
+  "createdOn": "2026-04-22T00:00:00",
+  "createdById": 1
+}</pre>
+<p><strong>Responses:</strong> 201 Created with new patient object</p>
+
+<h3><span class="method put">PUT</span> &nbsp;<span class="endpoint-path">/api/Patients/{id}</span></h3>
+<p>Updates an existing patient record.</p>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 400 Bad Request &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method delete">DELETE</span> &nbsp;<span class="endpoint-path">/api/Patients/{id}</span></h3>
+<p>Permanently deletes a patient record.</p>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 404 Not Found</p>
+
+<hr class="divider"/>
+
+<!-- ──────── DOCTORS ──────── -->
+<h2 id="doctors">7.3 Doctors</h2>
+<p class="section-intro">
+  Manages doctor profiles. A doctor is linked to a User account and optionally assigned a medical speciality.
+</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Doctors</span></h3>
+<p>Returns a summarised list of all doctors (includes name and speciality from related records).</p>
+<h4>Response Body (200 OK) — Array of DoctorVm objects</h4>
+<pre>[
+  {
+    "id": 1,
+    "userId": 3,
+    "firstName": "James",
+    "lastName": "Mwangi",
+    "specialityId": 2,
+    "speciality": "Cardiology",
+    "isAvailable": true,
+    "createdOn": "2026-04-06T16:00:00",
+    "createdById": 1
+  }
+]</pre>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Doctors/{id}</span></h3>
+<p>Returns the raw Doctor entity (includes foreign key IDs only; no joined names).</p>
+<p><strong>Responses:</strong> 200 OK with Doctor object &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method post">POST</span> &nbsp;<span class="endpoint-path">/api/Doctors</span></h3>
+<p>Creates a new doctor profile. The referenced <code>userId</code> must already exist.</p>
+<h4>Request Body</h4>
+<pre>{
+  "userId": 5,
+  "specialityId": 1,
+  "isAvailable": true,
+  "createdOn": "2026-04-22T00:00:00",
+  "createdById": 1
+}</pre>
+<p><strong>Responses:</strong> 201 Created with new Doctor object</p>
+
+<h3><span class="method put">PUT</span> &nbsp;<span class="endpoint-path">/api/Doctors/{id}</span></h3>
+<p>Updates an existing doctor profile (e.g., change speciality or availability).</p>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 400 Bad Request &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method delete">DELETE</span> &nbsp;<span class="endpoint-path">/api/Doctors/{id}</span></h3>
+<p>Deletes a doctor profile.</p>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 404 Not Found</p>
+
+<hr class="divider"/>
+
+<!-- ──────── APPOINTMENTS ──────── -->
+<h2 id="appointments">7.4 Appointments</h2>
+<p class="section-intro">
+  Central entity for scheduling. Appointments link a patient to a doctor at a specific date/time.
+  Retrieving a single appointment also returns the associated medical record and prescriptions.
+</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Appointments</span></h3>
+<p>Returns a flat list of all appointments with doctor name, patient name, and status label resolved.</p>
+<h4>Response Body (200 OK) — Array of AppointmentsVm</h4>
+<pre>[
+  {
+    "id": 1,
+    "doctorId": 1,
+    "doctor": "James",
+    "patientId": 2,
+    "patient": "Kamau Peter Njoroge",
+    "appointmentDateTime": "2026-04-25T09:00:00",
+    "statusId": 1,
+    "status": "Scheduled",
+    "code": 0,
+    "message": null,
+    "error": null
+  }
+]</pre>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Appointments/{id}</span></h3>
+<p>Returns full appointment details, including the medical record and all prescriptions linked to that appointment.</p>
+<h4>Response Body (200 OK) — AppointmentDetailVm</h4>
+<pre>{
+  "appointment": {
+    "id": 1,
+    "doctorId": 1,
+    "doctor": "James",
+    "patientId": 2,
+    "patient": "Kamau Peter Njoroge",
+    "appointmentDateTime": "2026-04-25T09:00:00",
+    "statusId": 1,
+    "status": "Scheduled"
+  },
+  "medicalRecord": {
+    "id": 5,
+    "appointmentId": 1,
+    "diagnosis": "Hypertension Stage 1",
+    "createdOn": "2026-04-25T09:30:00",
+    "createdById": 3
+  },
+  "prescriptions": [
+    {
+      "id": 8,
+      "appointmentId": 1,
+      "drugId": 2,
+      "drugName": "Amlodipine",
+      "dossage": "5mg once daily",
+      "duration": "30 days",
+      "quantity": 30,
+      "notes": "Take in the morning",
+      "doctorId": 1,
+      "createdOn": "2026-04-25T09:30:00"
+    }
+  ]
+}</pre>
+<p><strong>Responses:</strong> 200 OK &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method post">POST</span> &nbsp;<span class="endpoint-path">/api/Appointments</span></h3>
+<p>Creates a new appointment.</p>
+<h4>Request Body</h4>
+<pre>{
+  "doctorId": 1,
+  "patientId": 2,
+  "appointmentDateTime": "2026-05-01T10:00:00",
+  "statusId": 1,
+  "reason": "Routine check-up",
+  "notes": null,
+  "createdAt": "2026-04-22T00:00:00"
+}</pre>
+<p><strong>Responses:</strong> 201 Created with new Appointment object</p>
+
+<h3><span class="method put">PUT</span> &nbsp;<span class="endpoint-path">/api/Appointments/{id}</span></h3>
+<p>Updates an existing appointment (e.g., reschedule or change status).</p>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 400 Bad Request &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method delete">DELETE</span> &nbsp;<span class="endpoint-path">/api/Appointments/{id}</span></h3>
+<p>Deletes an appointment.</p>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 404 Not Found</p>
+
+<hr class="divider"/>
+
+<!-- ──────── APPOINTMENT STATUS ──────── -->
+<h2 id="appointment-status">7.5 Appointment Status</h2>
+<p class="section-intro">Lookup table for appointment status values (e.g., Scheduled, Completed, Cancelled).</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/AppointmentStatus</span></h3>
+<p>Returns all appointment status options.</p>
+<h4>Response Body (200 OK)</h4>
+<pre>[
+  { "id": 1, "name": "Scheduled", "createdOn": "2026-04-06T15:25:37", "createdById": 1 },
+  { "id": 2, "name": "Completed", "createdOn": "2026-04-06T15:25:37", "createdById": 1 },
+  { "id": 3, "name": "Cancelled", "createdOn": "2026-04-06T15:25:37", "createdById": 1 }
+]</pre>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/AppointmentStatus/{id}</span></h3>
+<p><strong>Responses:</strong> 200 OK &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method post">POST</span> &nbsp;<span class="endpoint-path">/api/AppointmentStatus</span></h3>
+<h4>Request Body</h4>
+<pre>{ "name": "No Show", "createdOn": "2026-04-22T00:00:00", "createdById": 1 }</pre>
+<p><strong>Responses:</strong> 201 Created</p>
+
+<h3><span class="method put">PUT</span> &nbsp;<span class="endpoint-path">/api/AppointmentStatus/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 400 Bad Request &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method delete">DELETE</span> &nbsp;<span class="endpoint-path">/api/AppointmentStatus/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 404 Not Found</p>
+
+<hr class="divider"/>
+
+<!-- ──────── MEDICAL RECORDS ──────── -->
+<h2 id="medical-records">7.6 Medical Records</h2>
+<p class="section-intro">
+  Stores clinical notes and diagnosis information tied to a specific appointment.
+  One medical record per appointment is the expected usage.
+</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/MedicalRecords</span></h3>
+<p>Returns all medical records.</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/MedicalRecords/{id}</span></h3>
+<p><strong>Responses:</strong> 200 OK &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method post">POST</span> &nbsp;<span class="endpoint-path">/api/MedicalRecords</span></h3>
+<h4>Request Body</h4>
+<pre>{
+  "appointmentId": 1,
+  "diagnosis": "Type 2 Diabetes Mellitus",
+  "createdOn": "2026-04-22T09:45:00",
+  "createdById": 3
+}</pre>
+<p><strong>Responses:</strong> 201 Created</p>
+
+<h3><span class="method put">PUT</span> &nbsp;<span class="endpoint-path">/api/MedicalRecords/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 400 Bad Request &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method delete">DELETE</span> &nbsp;<span class="endpoint-path">/api/MedicalRecords/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 404 Not Found</p>
+
+<hr class="divider"/>
+
+<!-- ──────── PRESCRIPTIONS ──────── -->
+<h2 id="prescriptions">7.7 Prescriptions</h2>
+<p class="section-intro">
+  Records medications prescribed to a patient within an appointment.
+  Multiple prescriptions can be linked to a single appointment.
+</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Prescriptions</span></h3>
+<p>Returns all prescriptions, including the resolved <code>drugName</code>.</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Prescriptions/{id}</span></h3>
+<p><strong>Responses:</strong> 200 OK &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method post">POST</span> &nbsp;<span class="endpoint-path">/api/Prescriptions</span></h3>
+<p>
+  Creates a new prescription. Returns a wrapped <code>ApiStatus</code> response rather than the entity directly.
+</p>
+<h4>Request Body</h4>
+<pre>{
+  "appointmentId": 1,
+  "drugId": 2,
+  "dossage": "500mg twice daily",
+  "duration": "7 days",
+  "quantity": 14,
+  "notes": "Take with food",
+  "doctorId": 1,
+  "createdOn": "2026-04-22T10:00:00"
+}</pre>
+<h4>Response Body (200 OK)</h4>
+<pre>{
+  "code": 200,
+  "message": "Prescription Created Successfully",
+  "error": null
+}</pre>
+
+<h3><span class="method put">PUT</span> &nbsp;<span class="endpoint-path">/api/Prescriptions/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 400 Bad Request &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method delete">DELETE</span> &nbsp;<span class="endpoint-path">/api/Prescriptions/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 404 Not Found</p>
+
+<hr class="divider"/>
+
+<!-- ──────── DRUGS ──────── -->
+<h2 id="drugs">7.8 Drugs</h2>
+<p class="section-intro">Drug/medication catalogue used when creating prescriptions.</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Drugs</span></h3>
+<p>Returns all drugs in the formulary.</p>
+<h4>Response Body (200 OK)</h4>
+<pre>[
+  {
+    "id": 1,
+    "name": "Paracetamol",
+    "milligrams": "500mg",
+    "cost": 5.00,
+    "quantity": 500,
+    "manufacturerId": 2
+  }
+]</pre>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Drugs/{id}</span></h3>
+<p><strong>Responses:</strong> 200 OK &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method post">POST</span> &nbsp;<span class="endpoint-path">/api/Drugs</span></h3>
+<h4>Request Body</h4>
+<pre>{
+  "name": "Amoxicillin",
+  "milligrams": "250mg",
+  "cost": 12.50,
+  "quantity": 200,
+  "manufacturerId": 1
+}</pre>
+<p><strong>Responses:</strong> 201 Created</p>
+
+<h3><span class="method put">PUT</span> &nbsp;<span class="endpoint-path">/api/Drugs/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 400 Bad Request &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method delete">DELETE</span> &nbsp;<span class="endpoint-path">/api/Drugs/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 404 Not Found</p>
+
+<hr class="divider"/>
+
+<!-- ──────── PAYMENTS ──────── -->
+<h2 id="payments">7.9 Payments</h2>
+<p class="section-intro">Records payment transactions linked to appointments.</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Payments</span></h3>
+<p>Returns all payment records.</p>
+<h4>Response Body (200 OK)</h4>
+<pre>[
+  {
+    "id": 1,
+    "appointmentId": 1,
+    "datePaid": "2026-04-25T10:30:00",
+    "totalAmount": 1500.00,
+    "transactionCode": "TXN-20260425-001",
+    "createdOn": "2026-04-25T10:30:00",
+    "createdById": 1
+  }
+]</pre>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Payments/{id}</span></h3>
+<p><strong>Responses:</strong> 200 OK &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method post">POST</span> &nbsp;<span class="endpoint-path">/api/Payments</span></h3>
+<h4>Request Body</h4>
+<pre>{
+  "appointmentId": 3,
+  "datePaid": "2026-04-22T11:00:00",
+  "totalAmount": 2000.00,
+  "transactionCode": "TXN-20260422-003",
+  "createdOn": "2026-04-22T11:00:00",
+  "createdById": 1
+}</pre>
+<p><strong>Responses:</strong> 201 Created</p>
+
+<h3><span class="method put">PUT</span> &nbsp;<span class="endpoint-path">/api/Payments/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 400 Bad Request &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method delete">DELETE</span> &nbsp;<span class="endpoint-path">/api/Payments/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 404 Not Found</p>
+
+<hr class="divider"/>
+
+<!-- ──────── GENDER ──────── -->
+<h2 id="gender">7.10 Gender</h2>
+<p class="section-intro">Lookup table for gender options used in patient registration.</p>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Gender</span></h3>
+<p>Returns all gender options.</p>
+<h4>Response Body (200 OK)</h4>
+<pre>[
+  { "id": 1, "name": "Male" },
+  { "id": 2, "name": "Female" },
+  { "id": 3, "name": "Other" }
+]</pre>
+
+<h3><span class="method get">GET</span> &nbsp;<span class="endpoint-path">/api/Gender/{id}</span></h3>
+<p><strong>Responses:</strong> 200 OK &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method post">POST</span> &nbsp;<span class="endpoint-path">/api/Gender</span></h3>
+<h4>Request Body</h4>
+<pre>{ "name": "Prefer Not to Say" }</pre>
+<p><strong>Responses:</strong> 201 Created</p>
+
+<h3><span class="method put">PUT</span> &nbsp;<span class="endpoint-path">/api/Gender/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 400 Bad Request &nbsp;|&nbsp; 404 Not Found</p>
+
+<h3><span class="method delete">DELETE</span> &nbsp;<span class="endpoint-path">/api/Gender/{id}</span></h3>
+<p><strong>Responses:</strong> 204 No Content &nbsp;|&nbsp; 404 Not Found</p>
+
+<hr class="divider"/>
+
+<!-- ═══════════════ 8. SUMMARY TABLE ═══════════════ -->
+<h2 id="endpoint-summary">8. Endpoint Summary Table</h2>
+<table>
+  <tr>
+    <th>Method</th>
+    <th>Endpoint</th>
+    <th>Description</th>
+    <th>Success Code</th>
+  </tr>
+  <!-- Users -->
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Users</td><td>List all users</td><td>200</td></tr>
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Users/{id}</td><td>Get user by ID</td><td>200</td></tr>
+  <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/Users</td><td>Create user</td><td>201</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td class="endpoint-path">/api/Users/{id}</td><td>Update user</td><td>204</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/Users/{id}</td><td>Delete user</td><td>204</td></tr>
+  <!-- Patients -->
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Patients</td><td>List all patients</td><td>200</td></tr>
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Patients/{id}</td><td>Get patient by ID</td><td>200</td></tr>
+  <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/Patients</td><td>Register patient</td><td>201</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td class="endpoint-path">/api/Patients/{id}</td><td>Update patient</td><td>204</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/Patients/{id}</td><td>Delete patient</td><td>204</td></tr>
+  <!-- Doctors -->
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Doctors</td><td>List all doctors</td><td>200</td></tr>
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Doctors/{id}</td><td>Get doctor by ID</td><td>200</td></tr>
+  <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/Doctors</td><td>Create doctor profile</td><td>201</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td class="endpoint-path">/api/Doctors/{id}</td><td>Update doctor</td><td>204</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/Doctors/{id}</td><td>Delete doctor</td><td>204</td></tr>
+  <!-- Appointments -->
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Appointments</td><td>List all appointments</td><td>200</td></tr>
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Appointments/{id}</td><td>Get appointment + record + prescriptions</td><td>200</td></tr>
+  <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/Appointments</td><td>Create appointment</td><td>201</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td class="endpoint-path">/api/Appointments/{id}</td><td>Update appointment</td><td>204</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/Appointments/{id}</td><td>Delete appointment</td><td>204</td></tr>
+  <!-- Appointment Status -->
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/AppointmentStatus</td><td>List all statuses</td><td>200</td></tr>
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/AppointmentStatus/{id}</td><td>Get status by ID</td><td>200</td></tr>
+  <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/AppointmentStatus</td><td>Create status</td><td>201</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td class="endpoint-path">/api/AppointmentStatus/{id}</td><td>Update status</td><td>204</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/AppointmentStatus/{id}</td><td>Delete status</td><td>204</td></tr>
+  <!-- Medical Records -->
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/MedicalRecords</td><td>List all medical records</td><td>200</td></tr>
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/MedicalRecords/{id}</td><td>Get medical record by ID</td><td>200</td></tr>
+  <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/MedicalRecords</td><td>Create medical record</td><td>201</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td class="endpoint-path">/api/MedicalRecords/{id}</td><td>Update medical record</td><td>204</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/MedicalRecords/{id}</td><td>Delete medical record</td><td>204</td></tr>
+  <!-- Prescriptions -->
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Prescriptions</td><td>List all prescriptions</td><td>200</td></tr>
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Prescriptions/{id}</td><td>Get prescription by ID</td><td>200</td></tr>
+  <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/Prescriptions</td><td>Create prescription</td><td>200 (ApiStatus)</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td class="endpoint-path">/api/Prescriptions/{id}</td><td>Update prescription</td><td>204</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/Prescriptions/{id}</td><td>Delete prescription</td><td>204</td></tr>
+  <!-- Drugs -->
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Drugs</td><td>List all drugs</td><td>200</td></tr>
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Drugs/{id}</td><td>Get drug by ID</td><td>200</td></tr>
+  <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/Drugs</td><td>Add drug to formulary</td><td>201</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td class="endpoint-path">/api/Drugs/{id}</td><td>Update drug</td><td>204</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/Drugs/{id}</td><td>Delete drug</td><td>204</td></tr>
+  <!-- Payments -->
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Payments</td><td>List all payments</td><td>200</td></tr>
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Payments/{id}</td><td>Get payment by ID</td><td>200</td></tr>
+  <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/Payments</td><td>Record payment</td><td>201</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td class="endpoint-path">/api/Payments/{id}</td><td>Update payment</td><td>204</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/Payments/{id}</td><td>Delete payment</td><td>204</td></tr>
+  <!-- Gender -->
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Gender</td><td>List gender options</td><td>200</td></tr>
+  <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/Gender/{id}</td><td>Get gender by ID</td><td>200</td></tr>
+  <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/Gender</td><td>Create gender option</td><td>201</td></tr>
+  <tr><td><span class="method put">PUT</span></td><td class="endpoint-path">/api/Gender/{id}</td><td>Update gender option</td><td>204</td></tr>
+  <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/Gender/{id}</td><td>Delete gender option</td><td>204</td></tr>
+</table>
+
+<hr class="divider"/>
+<p style="font-size:9pt; color:#888; text-align:center;">
+  MediCare REST API Documentation &mdash; Version 1.0 &mdash; April 2026
+</p>
+
+</body>
+</html>
