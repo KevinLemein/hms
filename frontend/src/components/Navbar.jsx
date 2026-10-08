@@ -14,7 +14,7 @@ export default function Navbar() {
 
     const handleLogout = () => {
         logout();
-        navigate("/login");
+        navigate("/login", { replace: true });
     };
 
     const role = roleConfig[user?.role] || { label: user?.role, color: "bg-slate-100 text-slate-700" };

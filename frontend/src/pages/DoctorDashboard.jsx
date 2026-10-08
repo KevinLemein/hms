@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import appointmentService from "../api/appointmentService";
 import prescriptionService from "../api/prescriptionService";
 import patientService from "../api/patientService";
+import billService from "../api/billService";
 
 export default function DoctorDashboard() {
     const { user } = useAuth();
+    const { showError } = useToast();
     const [activeTab, setActiveTab] = useState("dashboard");
     const [todayAppointments, setTodayAppointments] = useState([]);
     const [allAppointments, setAllAppointments] = useState([]);
@@ -24,6 +27,7 @@ export default function DoctorDashboard() {
                 setDrugs(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error("Failed to load drugs:", err);
+                showError("Failed to load drug list");
             }
         };
         loadDrugs();
@@ -42,7 +46,10 @@ export default function DoctorDashboard() {
         try {
             const response = await appointmentService.getTodayByDoctor(user.id);
             if (response.success) setTodayAppointments(response.data.filter(a => a.appointmentStatus));
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load today's appointments");
+        }
         finally { setLoading(false); }
     };
 
@@ -50,14 +57,20 @@ export default function DoctorDashboard() {
         try {
             const response = await appointmentService.getByDoctor(user.id);
             if (response.success) setAllAppointments(response.data.filter(a => a.appointmentStatus));
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load appointments");
+        }
     };
 
     const fetchPrescriptions = async () => {
         try {
             const prescData = await prescriptionService.getAll();
             setPrescriptions(Array.isArray(prescData) ? prescData : []);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to load prescriptions");
+        }
     };
 
     const handleStatusUpdate = async (id, status) => {
@@ -69,7 +82,10 @@ export default function DoctorDashboard() {
                 setSuccess("Status updated");
                 setTimeout(() => setSuccess(""), 3000);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            showError(err.response?.data?.message || "Failed to update status");
+        }
     };
 
     const handlePrescriptionCreated = () => {
@@ -321,7 +337,6 @@ export default function DoctorDashboard() {
                 {showPrescriptionModal && (
                     <PrescriptionModal
                         prefill={showPrescriptionModal}
-                        doctorId={user.id}
                         drugs={drugs}
                         onClose={() => setShowPrescriptionModal(null)}
                         onCreated={handlePrescriptionCreated}
@@ -444,7 +459,8 @@ function AllAppointmentsView({ appointments, statusColors, prescriptions, onPres
     );
 }
 
-function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
+function PrescriptionModal({ prefill, drugs, onClose, onCreated }) {
+    const { showError } = useToast();
     const [patients, setPatients] = useState([]);
     const [patientSearch, setPatientSearch] = useState(prefill.patientName || "");
     const [filteredPatients, setFilteredPatients] = useState([]);
@@ -453,7 +469,7 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
             ? { id: prefill.patientId, name: prefill.patientName, email: prefill.patientEmail || "", phone: prefill.patientPhone || "" }
             : null
     );
-    const [formData, setFormData] = useState({ drugId: "", dosage: "", duration: "", notes: "" });
+    const [formData, setFormData] = useState({ drugId: "", dosage: "", duration: "", notes: "", quantity: "1" });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -464,8 +480,11 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
     const loadPatients = async () => {
         try {
             const r = await patientService.getAllPatients();
-            if (r.success) setPatients(r.data);
-        } catch (err) { console.error(err); }
+            if (r.success) setPatients(r.data.content);
+        } catch (err) {
+            console.error(err);
+            showError("Failed to load patient list");
+        }
     };
 
     useEffect(() => {
@@ -499,22 +518,79 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
         if (!formData.drugId) { setError("Please select a drug"); return; }
         if (!formData.dosage) { setError("Dosage is required"); return; }
         if (!formData.duration) { setError("Duration is required"); return; }
+        if (!formData.quantity || Number(formData.quantity) < 1) { setError("Quantity must be at least 1"); return; }
         if (!prefill.appointmentId) { setError("No appointment linked. Please prescribe from the All Appointments tab."); return; }
 
         setLoading(true);
         setError("");
         try {
-            await prescriptionService.create({
-                    appointmentId: prefill.appointmentId,
+
+            // doctorId and createdOn are no longer sent -- the backend derives
+            // doctorId from the authenticated JWT and sets createdOn itself.
+            const prescriptionResponse = await prescriptionService.create({
+                appointmentId: prefill.appointmentId,
                 drugId: Number(formData.drugId),
-                dossage: Number(formData.dosage),
+                dossage: formData.dosage,
                 duration: formData.duration,
                 notes: formData.notes,
-                doctorId: doctorId,
-                createdOn: new Date().toISOString(),
+                quantity: Number(formData.quantity),
             });
+
+            // Now that prescriptions are backed by Spring Boot (not .NET),
+            // this is a deterministic ApiResponse envelope: {success, data: {id, ...}}.
+            const prescriptionId = prescriptionResponse?.data?.id ?? null;
+
+            // Step 2: bill the drug charge on the Spring Boot side.
+            // The billing model separates "create a bill" from "add a
+            // charge to a bill" -- a bill is meant to be shared across every
+            // charge for one appointment (consultation fee, each drug, labs,
+            // etc), not recreated per charge. So: look up whether this
+            // appointment already has a bill; if not, create one; either way,
+            // add this drug as a line item on it.
+            const selectedDrug = drugs.find(d => d.id === Number(formData.drugId));
+            if (selectedDrug) {
+                try {
+                    let bill;
+                    try {
+                        const existing = await billService.getByAppointment(prefill.appointmentId);
+                        bill = existing.data;
+                    } catch (lookupErr) {
+                        if (lookupErr.response?.status === 404) {
+                            const created = await billService.createBill({
+                                patientId: selectedPatient.id,
+                                appointmentId: prefill.appointmentId,
+                            });
+                            bill = created.data;
+                        } else {
+                            throw lookupErr;
+                        }
+                    }
+
+                    await billService.addItem(bill.id, {
+                        description: `${selectedDrug.name} (${selectedDrug.milligrams})`,
+                        // Bill the same quantity actually dispensed, not a
+                        // hardcoded 1 -- keeps billing and stock in sync.
+                        quantity: Number(formData.quantity),
+                        unitPrice: selectedDrug.cost || 0,
+                        source: "DRUG_DISPENSE",
+                        // Ties this line item to this specific prescription so the
+                        // same prescription can never be billed twice (enforced by
+                        // a DB-level unique constraint on (source, sourceReferenceId)).
+                        sourceReferenceId: prescriptionId,
+                    });
+                } catch (billErr) {
+                    // Prescription already saved successfully at this point — this is a
+                    // partial failure, not a total one. Silently swallowing it previously
+                    // meant the patient could go unbilled with no one aware anything went
+                    // wrong. Surface it distinctly so reception knows to add the charge
+                    // manually instead of failing the whole flow or hiding the problem.
+                    console.error("Bill creation failed (prescription was saved):", billErr);
+                    showError("Prescription saved, but the bill couldn't be created automatically. Please add the charge manually from the Bills tab.");
+                }
+            }
             onCreated();
-        } catch (err) {
+        }
+        catch (err) {
             console.error("Prescription error:", err);
             setError(err.response?.data?.message || err.response?.data?.title || "Failed to create prescription");
         } finally {
@@ -607,13 +683,35 @@ function PrescriptionModal({ prefill, doctorId, drugs, onClose, onCreated }) {
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Dosage</label>
                         <input
-                            type="number"
+                            type="text"
                             value={formData.dosage}
                             onChange={(e) => setFormData({ ...formData, dosage: e.target.value })}
                             required
                             placeholder="e.g. 2 (tablets/capsules)"
                             className={inputClass}
                         />
+                    </div>
+
+                    {/* Quantity dispensed */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                            Quantity Dispensed
+                            <span className="text-slate-400 font-normal"> (deducted from stock)</span>
+                        </label>
+                        <input
+                            type="number"
+                            min="1"
+                            value={formData.quantity}
+                            onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                            required
+                            className={inputClass}
+                        />
+                        {formData.drugId && (() => {
+                            const d = drugs.find(dr => dr.id === Number(formData.drugId));
+                            return d ? (
+                                <p className="text-xs text-slate-400 mt-1">{d.quantity} in stock</p>
+                            ) : null;
+                        })()}
                     </div>
 
                     {/* Duration */}

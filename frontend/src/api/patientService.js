@@ -15,6 +15,10 @@ const patientService = {
         const response = await api.get(`/patients/${id}`);
         return response.data;
     },
+    getByUserId: async (userId) => {
+        const response = await api.get(`/patients/by-user/${userId}`);
+        return response.data;
+    },
 
     searchPatients: async (query) => {
         const response = await api.get(`/patients/search?query=${encodeURIComponent(query)}`);

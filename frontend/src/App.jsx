@@ -1,6 +1,7 @@
 import {BrowserRouter as Router, Routes, Route, Navigate} from "react-router-dom";
 
 import {AuthProvider} from "./context/AuthContext.jsx"
+import {ToastProvider} from "./context/ToastContext.jsx"
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -14,29 +15,30 @@ import PatientDashboard from "./pages/PatientDashboard"
 function App() {
     return (
         <Router>
-            <AuthProvider>
-                <Routes>
-                    {/* Public routes*/}
+            <ToastProvider>
+                <AuthProvider>
+                    <Routes>
+                        {/* Public routes*/}
 
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/unauthorised" element={<Unauthorised />} />
+                        <Route path="/" element={<Home />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/unauthorized" element={<Unauthorised />} />
 
-                    {/* Private routes*/}
+                        {/* Private routes*/}
 
-                    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /> </ProtectedRoute>} />
-                    <Route path="/admin" element={<ProtectedRoute allowedRoles = {["ROLE_ADMIN"]}><AdminDashboard /></ProtectedRoute>} />
-                    <Route path="/doctor" element={<ProtectedRoute allowedRoles = {["ROLE_DOCTOR"]}><DoctorDashboard /></ProtectedRoute>} />
-                    <Route path="/receptionist" element={<ProtectedRoute allowedRoles = {["ROLE_RECEPTIONIST"]}><ReceptionistDashboard /></ProtectedRoute>} />
-                    <Route path="/patient" element={<ProtectedRoute allowedRoles = {["ROLE_PATIENT"]}><PatientDashboard /></ProtectedRoute>} />
+                        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /> </ProtectedRoute>} />
+                        <Route path="/admin" element={<ProtectedRoute allowedRoles = {["ROLE_ADMIN"]}><AdminDashboard /></ProtectedRoute>} />
+                        <Route path="/doctor" element={<ProtectedRoute allowedRoles = {["ROLE_DOCTOR"]}><DoctorDashboard /></ProtectedRoute>} />
+                        <Route path="/receptionist" element={<ProtectedRoute allowedRoles = {["ROLE_RECEPTIONIST"]}><ReceptionistDashboard /></ProtectedRoute>} />
+                        <Route path="/patient" element={<ProtectedRoute allowedRoles = {["ROLE_PATIENT"]}><PatientDashboard /></ProtectedRoute>} />
 
 
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-            </AuthProvider>
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </AuthProvider>
+            </ToastProvider>
         </Router>
     )
 }
 
 export default App;
-

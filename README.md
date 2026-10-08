@@ -1,207 +1,258 @@
 # MediCare HMS
 
-Hospital Management System — React + Spring Boot + .NET + PostgreSQL + Docker
-
-## Project Structure
-
-```
-hospital-management-system/
-├── docker-compose.yml
-├── backend/                          # Spring Boot (Java) — Auth, Users, Patients
-│   ├── Dockerfile
-│   ├── pom.xml
-│   └── src/main/java/com/kevinlemein/backend/
-│       ├── config/                   # SecurityConfig, DataSeeder
-│       ├── controller/              # Auth, Admin, Patient, Receptionist
-│       ├── dto/                     # Request/Response objects
-│       ├── model/                   # User, Patient, Role, Gender
-│       ├── repository/             # JPA Repositories
-│       ├── security/               # JWT filter, service
-│       └── service/                # Auth, User, Patient services
-├── dotnet-backend/                  # ASP.NET Core — Appointments, Records, Billing
-│   ├── Dockerfile
-│   ├── Controllers/
-│   ├── Models/
-│   └── Services/
-├── frontend/                        # React + Vite + Tailwind
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   └── src/
-│       ├── api/                    # axios, authService, patientService, adminService
-│       ├── components/             # Navbar, ProtectedRoute
-│       ├── context/                # AuthContext
-│       └── pages/                  # Login, Dashboard, Admin, Doctor, Receptionist, Patient
-└── database/
-    └── init.sql
-```
+Hospital Management System for small outpatient clinics — React + Spring Boot + .NET + PostgreSQL + Docker
 
 ## Prerequisites
 
-| Tool | Version | Install |
-|------|---------|---------|
-| Docker Desktop | 4.25+ | https://docker.com/products/docker-desktop |
-| Git | 2.40+ | https://git-scm.com/downloads |
-| Node.js (local dev) | 22 LTS | https://nodejs.org |
-| Java JDK (local dev) | 25 | https://adoptium.net |
-| .NET SDK (local dev) | 9.0+ | https://dotnet.microsoft.com/download |
+| Tool | Version | Required? |
+|------|---------|-----------|
+| [Docker Desktop](https://docker.com/products/docker-desktop) | 4.25+ | **Yes** |
+| [Git](https://git-scm.com/downloads) | 2.40+ | **Yes** |
+| Node.js | 22 LTS | Local dev only |
+| Java JDK | 25 | Local dev only |
 
-> **Docker is all you need to run the full system.** Node/Java/.NET are only needed for local development outside Docker.
+> **Docker is all you need to run the full system.** Node and Java are only needed if you want to develop outside Docker.
 
 ## Quick Start
 
+### 1. Clone the repository
+
 ```bash
-git clone https://github.com/<your-org>/hospital-management-system.git
-cd hospital-management-system
+git clone https://github.com/KevinLemein/hms.git
+cd hms
+```
+
+### 2. Create the environment file
+
+Create a `.env` file in the project root (same level as `docker-compose.yml`):
+
+```env
+DB_URL=jdbc:postgresql://<your-db-host>:5432/medicare
+DB_USERNAME=postgres
+DB_PASSWORD=<your-db-password>
+JWT_SECRET=<your-base64-encoded-64-byte-key>
+JWT_EXPIRATION=86400000
+```
+
+> **Important:** The `.env` file contains sensitive credentials and is excluded from Git via `.gitignore`. Never commit this file.
+
+To generate a JWT secret:
+
+```bash
+openssl rand -base64 64
+```
+
+### 3. Build and run
+
+```bash
 docker compose up --build
 ```
 
-Open **http://localhost:3000**
+### 4. Open the application
+
+Go to **http://localhost:3000**
 
 ### Default Admin Login
 
 ```
 Email:    kevin@gmail.com
-Password: 12345678
+Password: Admin@123
 ```
 
-### Common Commands
+After logging in as admin, create Doctor and Receptionist accounts from the Admin Dashboard.
 
-```bash
-docker compose down              # Stop (keeps data)
-docker compose down -v           # Stop + delete database
-docker builder prune -f          # Clear build cache
-docker compose up --build        # Rebuild after code changes
+## Architecture
+
+```
+Browser (React SPA)
+    |
+    v
+nginx (port 3000)
+    |--- /api/Prescriptions, /api/Drugs ---> .NET API (external HTTPS)
+    |--- /api/** ---> Spring Boot (port 8080, Docker internal)
+    |--- /* ---> React static files
+    |
+    v
+PostgreSQL 16 (remote, port 5432)
 ```
 
-## Database
+The system uses two independently deployed backend services sharing a single PostgreSQL database:
 
-**Shared PostgreSQL** — both backends connect to the same database.
+| Service | Technology | Responsibilities |
+|---------|-----------|-----------------|
+| **Module A** | Spring Boot 4.0 / Java 25 | Authentication (JWT), user management, patient registration, appointment scheduling |
+| **Module B** | .NET 8 / C# | Prescriptions, drug catalogue, medical records, billing |
+| **Frontend** | React 19 / Vite 6 | Single-page application with Tailwind CSS |
+| **Proxy** | nginx (Alpine) | Reverse proxy + static file server |
 
-| Property | Docker | Local |
-|----------|--------|-------|
-| Host | `postgres` | `localhost` |
-| Port | `5432` | `5432` |
-| Database | `hms_db` | `hms_db` |
-| Username | `postgres` | `postgres` |
-| Password | `hms_password_2026` | `hms_password_2026` |
+## User Roles
+
+| Role | Default Credentials | Dashboard Features |
+|------|--------------------|--------------------|
+| **Admin** | `kevin@gmail.com` / `Admin@123` | Create/manage users, assign roles, system overview |
+| **Receptionist** | Created by Admin | Register patients + book appointments, manage queue (check-in, cancel, no-show), view appointments |
+| **Doctor** | Created by Admin | View patient queue, start consultations, create prescriptions (drug dropdown from DB), view prescriptions |
+| **Patient** | Auto-generated on registration | View own appointments, view own prescriptions, personal info |
+
+## Project Structure
+
+```
+hms/
+├── .env                              # Environment variables (not in Git)
+├── .gitignore
+├── docker-compose.yml                # Docker service definitions
+├── backend/                          # Spring Boot (Java 25)
+│   ├── Dockerfile                    # Multi-stage: Maven build → JRE runtime
+│   ├── pom.xml
+│   └── src/main/java/com/kevinlemein/backend/
+│       ├── config/                   # SecurityConfig, DataSeeder
+│       ├── controller/               # Auth, Admin, Patient, Appointment, Bill
+│       ├── dto/                      # Request/Response DTOs
+│       ├── exception/                # GlobalExceptionHandler
+│       ├── model/                    # User, Patient, Appointment, Bill, enums
+│       ├── repository/               # JPA Repositories
+│       ├── security/                 # JwtService, JwtAuthenticationFilter
+│       └── service/                  # Auth, User, Patient, Appointment, Bill
+├── dotnetapi/                        # .NET 8 (C#) — colleague's module
+│   ├── Controllers/
+│   ├── Models/
+│   └── Services/
+├── frontend/                         # React 19 + Vite 6 + Tailwind CSS
+│   ├── Dockerfile                    # Multi-stage: Node build → nginx serve
+│   ├── nginx.conf                    # Reverse proxy configuration
+│   └── src/
+│       ├── api/                      # axios, authService, patientService,
+│       │                             # appointmentService, prescriptionService,
+│       │                             # billService
+│       ├── components/               # Navbar, ProtectedRoute
+│       ├── context/                  # AuthContext (JWT state management)
+│       └── pages/                    # Login, AdminDashboard, DoctorDashboard,
+│                                     # ReceptionistDashboard, PatientDashboard
+└── database/
+    └── init.sql
+```
 
 ## API Endpoints
 
-### Auth
+### Authentication
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/auth/login` | Public | Login, returns JWT |
+| POST | `/api/auth/login` | Public | Login with email/password, returns JWT |
 
-### Admin (ROLE_ADMIN only)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/admin/users` | List all users |
-| POST | `/api/admin/users` | Create admin/doctor/receptionist |
-| PATCH | `/api/admin/users/{id}/role` | Change user role |
-| PATCH | `/api/admin/users/{id}/toggle-status` | Enable/disable user |
-
-### Patients (RECEPTIONIST, ADMIN, DOCTOR)
+### User Management (Admin)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/patients/register` | RECEPTIONIST, ADMIN | Register patient (auto-generates password) |
+| POST | `/api/admin/users` | ADMIN | Create user (any role) |
+| GET | `/api/admin/users` | ADMIN | List all users |
+| GET | `/api/admin/doctors` | ADMIN, RECEPTIONIST | List doctors |
+
+### Patients
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/patients/register` | RECEPTIONIST, ADMIN | Register patient (auto-generates credentials) |
 | GET | `/api/patients` | DOCTOR, RECEPTIONIST, ADMIN | List all patients |
 | GET | `/api/patients/{id}` | DOCTOR, RECEPTIONIST, ADMIN | Get patient by ID |
+| GET | `/api/patients/by-user/{userId}` | ALL ROLES | Get patient by user ID |
 | GET | `/api/patients/search?query=` | DOCTOR, RECEPTIONIST, ADMIN | Search by name/email/phone |
 
-### Receptionist (ROLE_RECEPTIONIST only)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/receptionist/users` | Create doctor/receptionist/patient |
-| GET | `/api/receptionist/doctors` | List doctors |
-
-### Appointments —  (To Be Built)
+### Appointments
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/api/appointments` | RECEPTIONIST | Book appointment |
-| GET | `/api/appointments/doctor/{id}` | DOCTOR | Doctor's appointments |
-| PATCH | `/api/appointments/{id}/status` | DOCTOR, RECEPTIONIST | Update status |
+| PATCH | `/api/appointments/{id}/status` | DOCTOR, RECEPTIONIST, ADMIN | Update status |
+| GET | `/api/appointments` | RECEPTIONIST, ADMIN | List all appointments |
+| GET | `/api/appointments/today` | DOCTOR, RECEPTIONIST, ADMIN | Today's appointments |
+| GET | `/api/appointments/doctor/{id}` | DOCTOR, RECEPTIONIST, ADMIN | Appointments by doctor |
+| GET | `/api/appointments/doctor/{id}/today` | DOCTOR, RECEPTIONIST, ADMIN | Today's for specific doctor |
+| GET | `/api/appointments/patient/{id}` | ALL ROLES | Appointments by patient |
 
-### Medical Records —  (To Be Built)
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/records` | DOCTOR | Create record |
-| GET | `/api/records/patient/{id}` | DOCTOR, PATIENT | Patient records |
-
-### Prescriptions —  (To Be Built)
+### Prescriptions & Drugs (.NET via nginx proxy)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/prescriptions` | DOCTOR | Create prescription |
-| GET | `/api/prescriptions/patient/{id}` | DOCTOR, PATIENT | Patient prescriptions |
+| GET | `/api/Prescriptions` | DOCTOR | List all prescriptions |
+| POST | `/api/Prescriptions` | DOCTOR | Create prescription |
+| GET | `/api/Drugs` | DOCTOR | List all drugs |
 
-### Billing —  (To Be Built)
+### Billing
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/billing/invoice` | RECEPTIONIST | Generate invoice |
-| PATCH | `/api/billing/invoice/{id}/pay` | RECEPTIONIST | Mark as paid |
+| POST | `/api/bills/from-prescription` | DOCTOR, RECEPTIONIST, ADMIN | Create bill from prescription |
+| POST | `/api/bills/{id}/items` | RECEPTIONIST, ADMIN | Add extra charge to bill |
+| PATCH | `/api/bills/{id}/pay` | RECEPTIONIST, ADMIN | Record payment (CASH/MPESA/CARD) |
+| GET | `/api/bills` | RECEPTIONIST, ADMIN | List all bills |
+| GET | `/api/bills/appointment/{id}` | DOCTOR, RECEPTIONIST, ADMIN | Bill for an appointment |
 
 ## API Response Format
 
-All endpoints return:
+All Spring Boot endpoints return a standardised envelope:
 
 ```json
 {
   "success": true,
   "message": "Patient registered successfully",
-  "data": { },
-  "timestamp": "2026-04-06T10:30:00"
+  "data": { ... },
+  "timestamp": "2026-04-22T10:30:00"
 }
 ```
 
-## JWT
+## Appointment Status Flow
 
-Tokens are issued by Spring Boot and validated by both backends using the same secret.
+```
+PENDING  ──→  WAITING  ──→  IN_CONSULTATION  ──→  COMPLETED
+   │              │
+   └→ CANCELLED   └→ NO_SHOW
+```
 
-**Payload claims:** `sub` (email), `role` (e.g. ROLE_DOCTOR), `userId`, `iat`, `exp` (24h)
+| Status | Set By | Meaning |
+|--------|--------|---------|
+| PENDING | System | Appointment booked, patient not yet arrived |
+| WAITING | Receptionist | Patient checked in, visible in doctor's queue |
+| IN_CONSULTATION | Doctor | Doctor seeing patient, can prescribe |
+| COMPLETED | Doctor | Visit finished |
+| CANCELLED | Receptionist | Cancelled before arrival |
+| NO_SHOW | Receptionist | Patient did not arrive |
 
-**Header format:** `Authorization: Bearer <token>`
-
-## .NET Setup (Module B)
+## Common Commands
 
 ```bash
-mkdir dotnet-backend && cd dotnet-backend
-dotnet new webapi -n HmsApi && cd HmsApi
-
-# Required packages
-dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
-dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
-dotnet add package Microsoft.EntityFrameworkCore.Design
+docker compose up --build          # Build and start all services
+docker compose down                # Stop services (keeps data)
+docker compose up --build backend  # Rebuild backend only
+docker compose up --build frontend # Rebuild frontend only
+docker builder prune -f            # Clear Docker build cache
+docker compose logs backend        # View backend logs
+docker compose logs frontend       # View frontend/nginx logs
 ```
 
-Add to `docker-compose.yml`:
+## Security Notes
 
-```yaml
-dotnet-backend:
-  build:
-    context: ./dotnet-backend/HmsApi
-  container_name: hms-dotnet
-  ports:
-    - "5000:5000"
-  environment:
-    ASPNETCORE_URLS: "http://+:5000"
-    ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=hms_db;Username=postgres;Password=hms_password_2026"
-  depends_on:
-    postgres:
-      condition: service_healthy
-```
+- Passwords are hashed with **BCrypt** — plain text is never stored
+- All API endpoints (except login) require a valid **JWT Bearer token**
+- Credentials are stored in `.env` files, never in source code
+- RBAC is enforced at both the API level (`@PreAuthorize`) and the UI level (React route guards)
+- If credentials are accidentally committed to Git, **rotate them immediately**
 
-Add to `nginx.conf` (before the existing `/api/` block):
+## Tech Stack
 
-```nginx
-location /api/appointments/ { proxy_pass http://dotnet-backend:5000; }
-location /api/records/      { proxy_pass http://dotnet-backend:5000; }
-location /api/prescriptions/ { proxy_pass http://dotnet-backend:5000; }
-location /api/billing/       { proxy_pass http://dotnet-backend:5000; }
-```
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, Vite 6, Tailwind CSS, Axios, React Router 7 |
+| Backend (Module A) | Spring Boot 4.0, Java 25, Spring Security 6, Hibernate 7, JWT |
+| Backend (Module B) | .NET 8, C#, Entity Framework Core |
+| Database | PostgreSQL 16 |
+| Containerisation | Docker, Docker Compose |
+| Reverse Proxy | nginx (Alpine) |
+
+## Authors
+
+- **Kevin Lemein** — Spring Boot backend, React frontend, system architecture
+- **Bronson Smith** — .Documentation 
+- **Daniel Mburu** — .NET backend, Database Design
+
+USIU-Africa | MSc Information Systems & Technology | 2026

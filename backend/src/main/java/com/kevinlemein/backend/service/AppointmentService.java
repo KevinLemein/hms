@@ -2,6 +2,8 @@ package com.kevinlemein.backend.service;
 
 import com.kevinlemein.backend.dto.AppointmentResponse;
 import com.kevinlemein.backend.dto.BookAppointmentRequest;
+import com.kevinlemein.backend.exception.InvalidRequestException;
+import com.kevinlemein.backend.exception.ResourceNotFoundException;
 import com.kevinlemein.backend.model.*;
 import com.kevinlemein.backend.repository.AppointmentRepository;
 import com.kevinlemein.backend.repository.PatientRepository;
@@ -30,19 +32,19 @@ public class AppointmentService {
     public AppointmentResponse bookAppointment(BookAppointmentRequest request) {
 
         Patient patient = patientRepository.findById(request.getPatientId())
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
 
         User doctor = userRepository.findById(request.getDoctorId())
-                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
 
         if (doctor.getRole() != Role.ROLE_DOCTOR) {
-            throw new RuntimeException("Selected user is not a doctor");
+            throw new InvalidRequestException("Selected user is not a doctor");
         }
 
         LocalDateTime dateTime = LocalDateTime.parse(request.getAppointmentDateTime());
 
         if (dateTime.isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Cannot book appointments in the past");
+            throw new InvalidRequestException("Cannot book appointments in the past");
         }
 
         Appointment appointment = Appointment.builder()
@@ -63,13 +65,13 @@ public class AppointmentService {
     @Transactional
     public AppointmentResponse updateStatus(Long appointmentId, String newStatus, String notes) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
 
         AppointmentStatus status;
         try {
             status = AppointmentStatus.valueOf(newStatus.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid status: " + newStatus);
+            throw new InvalidRequestException("Invalid status: " + newStatus);
         }
 
         appointment.setAppointmentStatus(status);
@@ -159,7 +161,7 @@ public class AppointmentService {
      */
     public AppointmentResponse getById(Long id) {
         Appointment appointment = appointmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
         return mapToResponse(appointment);
     }
 

@@ -1,6 +1,14 @@
-import { Link } from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
+import { useAuth} from "../context/AuthContext.jsx"
 
 export default function Home() {
+    const { user, isAuthenticated, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate("/", {replace : true});
+    }
     return (
         <div className="min-h-screen bg-slate-50">
             {/* Navbar */}
@@ -15,18 +23,28 @@ export default function Home() {
                         <span className="text-lg font-bold text-slate-800">MediCare HMS</span>
                     </div>
                     <div className="flex items-center gap-3">
+                        {isAuthenticated && user ? (
+                            <>
+                               <span className="text-sm font-medium text-slate-600">
+                                    {user.username}
+                                </span>
+                               <button
+                                   onClick={() => handleLogout}
+                                   className="px-4 py-2 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-all"
+                               >
+                                   Sign Out
+                                   </button>
+                            </>
+
+                        ) : (
+
                         <Link
                             to="/login"
-                            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-teal-600 transition-colors"
-                        >
-                            Sign In
-                        </Link>
-                        <Link
-                            to="/register"
                             className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-all"
                         >
-                            Get Started
+                           Sign In
                         </Link>
+                            )}
                     </div>
                 </div>
             </nav>
@@ -65,12 +83,6 @@ export default function Home() {
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
-                            </Link>
-                            <Link
-                                to="/register"
-                                className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white font-semibold px-8 py-3.5 rounded-lg hover:bg-white/20 transition-all border border-white/20"
-                            >
-                                Create Account
                             </Link>
                         </div>
                     </div>
@@ -224,7 +236,7 @@ export default function Home() {
                             Ready to Get Started?
                         </h2>
                         <p className="text-teal-100 text-lg mb-8 max-w-md mx-auto">
-                            Sign in to access your dashboard or create a new account to join the platform.
+                            Sign in to access your dashboard.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <Link
@@ -235,12 +247,6 @@ export default function Home() {
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
-                            </Link>
-                            <Link
-                                to="/register"
-                                className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white font-semibold px-8 py-3.5 rounded-lg hover:bg-white/20 transition-all border border-white/20"
-                            >
-                                Create Account
                             </Link>
                         </div>
                     </div>

@@ -1,11 +1,14 @@
 package com.kevinlemein.backend.controller;
 
 import com.kevinlemein.backend.dto.ApiResponse;
+import com.kevinlemein.backend.dto.PagedResponse;
 import com.kevinlemein.backend.dto.PatientResponse;
 import com.kevinlemein.backend.dto.RegisterPatientRequest;
 import com.kevinlemein.backend.service.PatientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,25 +31,21 @@ public class PatientController {
     public ResponseEntity<ApiResponse<PatientResponse>> registerPatient(
             @Valid @RequestBody RegisterPatientRequest request
     ) {
-        try {
-            PatientResponse response = patientService.registerPatient(request);
-            return ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("Patient registered successfully", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
-        }
+        PatientResponse response = patientService.registerPatient(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Patient registered successfully", response));
     }
 
     /**
-     * Get all patients
+     * Get all patients (paginated — defaults to 20 per page)
      */
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR')")
-    public ResponseEntity<ApiResponse<List<PatientResponse>>> getAllPatients() {
-        List<PatientResponse> patients = patientService.getAllPatients();
+    public ResponseEntity<ApiResponse<PagedResponse<PatientResponse>>> getAllPatients(
+            @PageableDefault(size = 20) Pageable pageable
+    ) {
+        PagedResponse<PatientResponse> patients = patientService.getAllPatients(pageable);
         return ResponseEntity.ok(ApiResponse.success("Patients retrieved", patients));
     }
 
@@ -56,12 +55,19 @@ public class PatientController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR')")
     public ResponseEntity<ApiResponse<PatientResponse>> getPatientById(@PathVariable Long id) {
-        try {
-            PatientResponse response = patientService.getPatientById(id);
-            return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        PatientResponse response = patientService.getPatientById(id);
+        return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
+    }
+
+    /**
+     * Get patient by user ID (for patient dashboard)
+     */
+    @GetMapping("/by-user/{userId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_DOCTOR') " +
+            "or @patientSecurity.isOwnUserId(#userId)")
+    public ResponseEntity<ApiResponse<PatientResponse>> getPatientByUserId(@PathVariable Long userId) {
+        PatientResponse response = patientService.getPatientByUserId(userId);
+        return ResponseEntity.ok(ApiResponse.success("Patient retrieved", response));
     }
 
     /**

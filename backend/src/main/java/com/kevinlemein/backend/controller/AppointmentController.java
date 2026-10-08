@@ -29,16 +29,10 @@ public class AppointmentController {
     public ResponseEntity<ApiResponse<AppointmentResponse>> bookAppointment(
             @Valid @RequestBody BookAppointmentRequest request
     ) {
-        try {
-            AppointmentResponse response = appointmentService.bookAppointment(request);
-            return ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("Appointment booked successfully", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
-        }
+        AppointmentResponse response = appointmentService.bookAppointment(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Appointment booked successfully", response));
     }
 
     /**
@@ -50,14 +44,10 @@ public class AppointmentController {
             @PathVariable Long id,
             @RequestBody Map<String, String> body
     ) {
-        try {
-            String status = body.get("status");
-            String notes = body.get("notes");
-            AppointmentResponse response = appointmentService.updateStatus(id, status, notes);
-            return ResponseEntity.ok(ApiResponse.success("Status updated", response));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        String status = body.get("status");
+        String notes = body.get("notes");
+        AppointmentResponse response = appointmentService.updateStatus(id, status, notes);
+        return ResponseEntity.ok(ApiResponse.success("Status updated", response));
     }
 
     /**
@@ -104,7 +94,8 @@ public class AppointmentController {
      * Get appointments by patient
      */
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN', 'ROLE_PATIENT')")
+    @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN') " +
+            "or @patientSecurity.isOwnPatientId(#patientId)")
     public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getByPatient(@PathVariable Long patientId) {
         return ResponseEntity.ok(ApiResponse.success("Patient appointments",
                 appointmentService.getByPatient(patientId)));
@@ -116,11 +107,7 @@ public class AppointmentController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_DOCTOR', 'ROLE_RECEPTIONIST', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<AppointmentResponse>> getById(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(ApiResponse.success("Appointment retrieved",
-                    appointmentService.getById(id)));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+        return ResponseEntity.ok(ApiResponse.success("Appointment retrieved",
+                appointmentService.getById(id)));
     }
 }

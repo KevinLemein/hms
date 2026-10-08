@@ -54,8 +54,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/patients/me/**").hasAuthority("ROLE_PATIENT")
 
                         // Shared endpoints (accessible by doctor and receptionist)
-                        .requestMatchers("/api/patients/**").hasAnyAuthority("ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_ADMIN")
-                        .requestMatchers("/api/appointments/**").hasAnyAuthority("ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_ADMIN")
+                        .requestMatchers("/api/patients/**").hasAnyAuthority("ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_ADMIN", "ROLE_PATIENT")
+                        .requestMatchers("/api/appointments/**").hasAnyAuthority("ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_ADMIN", "ROLE_PATIENT")
+                        .requestMatchers("/api/bills/**").hasAnyAuthority("ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_ADMIN", "ROLE_PATIENT")
 
                         // Everything else requires authentication
                         .anyRequest().authenticated()

@@ -1,9 +1,8 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute({ children, allowedRoles }) {
     const { user, isAuthenticated, loading } = useAuth();
-    const location = useLocation();
 
     if (loading) {
         return (
@@ -14,7 +13,9 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     }
 
     if (!isAuthenticated) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
+        // Not passing `from` here anymore -- Login.jsx always sends a user
+        // to their own role's dashboard after login (see Login.jsx for why).
+        return <Navigate to="/login" replace />;
     }
 
     // If specific roles are required, check them

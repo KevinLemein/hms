@@ -1,7 +1,11 @@
 package com.kevinlemein.backend.service;
 
 import com.kevinlemein.backend.dto.PatientResponse;
+import com.kevinlemein.backend.dto.PagedResponse;
 import com.kevinlemein.backend.dto.RegisterPatientRequest;
+import com.kevinlemein.backend.exception.DuplicateResourceException;
+import com.kevinlemein.backend.exception.InvalidRequestException;
+import com.kevinlemein.backend.exception.ResourceNotFoundException;
 import com.kevinlemein.backend.model.Gender;
 import com.kevinlemein.backend.model.Patient;
 import com.kevinlemein.backend.model.Role;
@@ -9,6 +13,8 @@ import com.kevinlemein.backend.model.User;
 import com.kevinlemein.backend.repository.PatientRepository;
 import com.kevinlemein.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +44,7 @@ public class PatientService {
 
         // Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email is already registered");
+            throw new DuplicateResourceException("Email is already registered");
         }
 
         // Generate username from email prefix
@@ -65,7 +71,7 @@ public class PatientService {
         try {
             gender = Gender.valueOf(request.getGender().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid gender: " + request.getGender());
+            throw new InvalidRequestException("Invalid gender: " + request.getGender());
         }
 
         // Create Patient
@@ -89,13 +95,11 @@ public class PatientService {
     }
 
     /**
-     * Get all patients
+     * Get all patients, paginated (defaults handled by the controller)
      */
-    public List<PatientResponse> getAllPatients() {
-        return patientRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PagedResponse<PatientResponse> getAllPatients(Pageable pageable) {
+        Page<Patient> patients = patientRepository.findAll(pageable);
+        return PagedResponse.from(patients.map(this::mapToResponse));
     }
 
     /**
@@ -103,7 +107,7 @@ public class PatientService {
      */
     public PatientResponse getPatientById(Long id) {
         Patient patient = patientRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Patient not found"));
         return mapToResponse(patient);
     }
 
@@ -112,7 +116,7 @@ public class PatientService {
      */
     public PatientResponse getPatientByUserId(Long userId) {
         Patient patient = patientRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Patient record not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Patient record not found"));
         return mapToResponse(patient);
     }
 

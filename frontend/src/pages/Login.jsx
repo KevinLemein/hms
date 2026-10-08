@@ -1,17 +1,26 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { dashboardPathForRole } from "../utils/roleRoutes.jsx";
+
+const roleLabels = {
+    ROLE_ADMIN: "Admin",
+    ROLE_DOCTOR: "Doctor",
+    ROLE_RECEPTIONIST: "Receptionist",
+    //ROLE_PHARMACIST: "Pharmacist",
+    ROLE_PATIENT: "Patient",
+};
 
 export default function Login() {
     const [formData, setFormData] = useState({ email: "", password: "" });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const { login } = useAuth();
+    const { login, user, isAuthenticated, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
-    const from = location.state?.from?.pathname || "/dashboard";
+    const sessionExpired = location.state?.sessionExpired;
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,15 +35,8 @@ export default function Login() {
         try {
             const response = await login(formData);
             if (response.success) {
-                // Navigate directly to the role-specific dashboard
-                const roleRoutes = {
-                    ROLE_ADMIN: "/admin",
-                    ROLE_DOCTOR: "/doctor",
-                    ROLE_RECEPTIONIST: "/receptionist",
-                    ROLE_PATIENT: "/patient",
-                };
-                const destination = roleRoutes[response.data.role] || "/dashboard";
-                navigate(destination, { replace: true });
+
+                navigate(dashboardPathForRole(response.data.role), { replace: true });
             } else {
                 setError(response.message || "Login failed");
             }
@@ -44,6 +46,10 @@ export default function Login() {
             setLoading(false);
         }
     };
+
+    if (isAuthenticated && user) {
+        return <Navigate to={dashboardPathForRole(user.role)} replace />;
+    }
 
     return (
         <div className="min-h-screen flex">
@@ -103,6 +109,15 @@ export default function Login() {
                         <h2 className="text-2xl font-bold text-slate-800">Welcome back</h2>
                         <p className="text-slate-500 mt-1">Sign in to your account to continue</p>
                     </div>
+
+                    {sessionExpired && !error && (
+                        <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Your session expired. Please sign in again.
+                        </div>
+                    )}
 
                     {error && (
                         <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">

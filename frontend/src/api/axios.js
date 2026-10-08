@@ -22,13 +22,22 @@ api.interceptors.request.use(
 );
 
 // Response interceptor — handle 401 globally
+//
+// IMPORTANT: this file runs outside the React tree, so it has no access to
+// React Router's navigate(). Using window.location.href here would force a
+// full page reload AND always *push* a new history entry (it can never
+// "replace"), which is what left a stray /login entry sitting in browser
+// history behind whatever page the user was on — hence the back-gesture
+// landing back on the sign-in screen. Dispatching a custom event lets
+// AuthProvider (which does have navigate) handle the redirect properly with
+// replace: true, so /login never lingers in history.
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
-            window.location.href = "/login";
+            window.dispatchEvent(new CustomEvent("auth:session-expired"));
         }
         return Promise.reject(error);
     }
