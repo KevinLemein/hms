@@ -13,5 +13,6 @@ public class PaymentResponse {
     private BigDecimal amount;
     private String method;
     private String reference;
+    private Long recordedByUserId;
     private LocalDateTime paidAt;
 }

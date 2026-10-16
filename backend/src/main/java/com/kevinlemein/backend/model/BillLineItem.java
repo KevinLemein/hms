@@ -56,9 +56,15 @@ public class BillLineItem {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * Must run before the item is added to a bill, not only at persist time:
+     * Bill.recalculateStatus() sums totalPrice of every line item, including
+     * one that hasn't been flushed yet. Relying on @PrePersist alone left
+     * totalPrice null at that point (NullPointerException on every charge).
+     */
     @PrePersist
     @PreUpdate
-    protected void calculate() {
+    public void calculateTotal() {
         if (createdAt == null) createdAt = LocalDateTime.now();
         if (unitPrice != null && quantity != null) {
             this.totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity));

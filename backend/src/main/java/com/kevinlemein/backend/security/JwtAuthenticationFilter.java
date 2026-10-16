@@ -61,7 +61,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: " + e.getMessage());
+            // Invalid/expired tokens are routine (the request continues
+            // unauthenticated and gets a 401). Log only the failure type:
+            // parser messages can echo parts of the client-supplied token.
+            if (logger.isDebugEnabled()) {
+                logger.debug("Rejected bearer token: " + e.getClass().getSimpleName());
+            }
         }
 
         filterChain.doFilter(request, response);

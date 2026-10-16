@@ -32,8 +32,9 @@ const billService = {
     },
 
     // Get all bills
-    getAll: async () => {
-        const response = await api.get("/bills");
+    // Paged (PagedResponse), newest first. page is 0-based.
+    getAll: async (page = 0, size = 20) => {
+        const response = await api.get("/bills", { params: { page, size } });
         return response.data;
     },
 

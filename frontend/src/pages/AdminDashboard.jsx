@@ -1,365 +1,184 @@
-import { useState, useEffect } from "react";
-import Navbar from "../components/Navbar";
+import { useCallback, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import adminService from "../api/adminService";
+import useLoader from "../lib/useLoader";
+import { getErrorMessage } from "../lib/apiError";
+import { fullName } from "../lib/format";
+import { statusLabel } from "../lib/statuses";
+import AppShell from "../components/AppShell";
+import { Card, CardHeader, PageHeader } from "../components/ui/Card";
+import DataTable from "../components/ui/DataTable";
+import EmptyState from "../components/ui/EmptyState";
+import Pagination from "../components/ui/Pagination";
+import StatusBadge from "../components/ui/StatusBadge";
+import Button from "../components/ui/Button";
+import { ConfirmDialog } from "../components/ui/Modal";
+import { LoadError } from "../components/ui/Alert";
+import { SkeletonRows } from "../components/ui/Spinner";
+import { FilterGroup } from "../components/ui/Tabs";
+import CreateUserDialog from "../features/admin/CreateUserDialog";
+
+const ROLES = ["ROLE_ADMIN", "ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_PATIENT"];
+const FILTERS = [{ value: "ALL", label: "All" }, ...ROLES.map((r) => ({ value: r, label: statusLabel("role", r) }))];
 
 export default function AdminDashboard() {
-    const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [filterRole, setFilterRole] = useState("ALL");
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+    const { user } = useAuth();
+    const { showSuccess, showError } = useToast();
+    const [filter, setFilter] = useState("ALL");
+    const [page, setPage] = useState(0);
+    const [creating, setCreating] = useState(false);
+    const [confirm, setConfirm] = useState(null); // { kind: "role" | "status", user, role? }
+    const [working, setWorking] = useState(false);
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
+    // "All" is paged on the server; a role filter uses /admin/users/role/{role},
+    // so filtering covers every user, not just the first page.
+    const load = useCallback(async () => {
+        if (filter === "ALL") return (await adminService.getAllUsers(page)).data;
+        const res = await adminService.getUsersByRole(filter);
+        return { content: res.data, page: 0, totalPages: 1, totalElements: res.data.length };
+    }, [filter, page]);
+    const { data, loading, error, reload, setData } = useLoader(load);
+    const users = data?.content || [];
 
-    const fetchUsers = async () => {
+    const replaceUser = (u) => setData((d) => ({ ...d, content: d.content.map((x) => (x.id === u.id ? u : x)) }));
+
+    const runConfirmed = async () => {
+        setWorking(true);
         try {
-            const response = await adminService.getAllUsers();
-            if (response.success) {
-                // getAllUsers now returns a paginated shape:
-                // { content, page, size, totalElements, totalPages, last }
-                setUsers(response.data.content);
-            }
+            const res = confirm.kind === "role"
+                ? await adminService.updateUserRole(confirm.user.id, confirm.role)
+                : await adminService.toggleUserStatus(confirm.user.id);
+            replaceUser(res.data);
+            showSuccess(confirm.kind === "role"
+                ? `${fullName(res.data.firstName, res.data.lastName)} is now ${statusLabel("role", res.data.role)}`
+                : `${fullName(res.data.firstName, res.data.lastName)}'s account is ${res.data.enabled ? "enabled" : "disabled"}`);
         } catch (err) {
-            setError("Failed to load users");
+            showError(getErrorMessage(err, "The change couldn't be saved."));
         } finally {
-            setLoading(false);
+            setWorking(false);
+            setConfirm(null);
         }
     };
 
-    const handleToggleStatus = async (userId) => {
-        try {
-            const response = await adminService.toggleUserStatus(userId);
-            if (response.success) {
-                setUsers(users.map((u) => (u.id === userId ? response.data : u)));
-                showAlert("User status updated");
-            }
-        } catch (err) {
-            setError("Failed to update user status");
-        }
-    };
-
-    const handleRoleChange = async (userId, newRole) => {
-        try {
-            const response = await adminService.updateUserRole(userId, newRole);
-            if (response.success) {
-                setUsers(users.map((u) => (u.id === userId ? response.data : u)));
-                showAlert("Role updated successfully");
-            }
-        } catch (err) {
-            setError("Failed to update role");
-        }
-    };
-
-    const showAlert = (msg) => {
-        setSuccess(msg);
-        setTimeout(() => setSuccess(""), 3000);
-    };
-
-    const filteredUsers =
-        filterRole === "ALL" ? users : users.filter((u) => u.role === filterRole);
-
-    const roleColors = {
-        ROLE_ADMIN: "bg-purple-100 text-purple-700 border-purple-200",
-        ROLE_DOCTOR: "bg-blue-100 text-blue-700 border-blue-200",
-        ROLE_RECEPTIONIST: "bg-amber-100 text-amber-700 border-amber-200",
-        ROLE_PATIENT: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    };
-
-    const roleLabels = {
-        ROLE_ADMIN: "Admin",
-        ROLE_DOCTOR: "Doctor",
-        ROLE_RECEPTIONIST: "Receptionist",
-        ROLE_PATIENT: "Patient",
-    };
+    const isSelf = (u) => u.id === user.id;
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <Navbar />
-            <main className="max-w-7xl mx-auto px-6 py-8">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-800">User Management</h1>
-                        <p className="text-slate-500 mt-1">Create and manage system users</p>
-                    </div>
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-all flex items-center gap-2"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Create User
-                    </button>
-                </div>
+        <AppShell>
+            <PageHeader
+                title="User management"
+                description="Create staff accounts, change roles and enable or disable access."
+                actions={<Button icon="userPlus" onClick={() => setCreating(true)}>Create staff account</Button>}
+            />
 
-                {/* Alerts */}
-                {error && (
-                    <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                        {error}
-                        <button onClick={() => setError("")} className="float-right font-bold">&times;</button>
-                    </div>
-                )}
-                {success && (
-                    <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm">
-                        {success}
-                    </div>
-                )}
-
-                {/* Quick Action - Manage Users */}
-                <div className="mb-8">
-                    <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Quick Actions</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div
-                            onClick={() => setShowCreateModal(true)}
-                            className="p-5 rounded-xl border-2 border-purple-100 bg-purple-50 hover:border-purple-300 cursor-pointer transition-all hover:shadow-md"
-                        >
-                            <span className="text-2xl">👤</span>
-                            <h3 className="text-base font-semibold text-slate-800 mt-2">Create User</h3>
-                            <p className="text-sm text-slate-500 mt-1">Add admin, doctor, or receptionist</p>
-                        </div>
-                        <div className="p-5 rounded-xl border-2 border-slate-100 bg-white cursor-default">
-                            <span className="text-2xl">📊</span>
-                            <h3 className="text-base font-semibold text-slate-800 mt-2">System Stats</h3>
-                            <p className="text-sm text-slate-500 mt-1">{users.length} total users registered</p>
-                        </div>
-                        <div className="p-5 rounded-xl border-2 border-slate-100 bg-white cursor-default">
-                            <span className="text-2xl">🔒</span>
-                            <h3 className="text-base font-semibold text-slate-800 mt-2">Access Control</h3>
-                            <p className="text-sm text-slate-500 mt-1">Manage roles and permissions</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    {[
-                        { label: "Total Users", count: users.length, icon: "👥" },
-                        { label: "Doctors", count: users.filter((u) => u.role === "ROLE_DOCTOR").length, icon: "🩺" },
-                        { label: "Receptionists", count: users.filter((u) => u.role === "ROLE_RECEPTIONIST").length, icon: "🏥" },
-                        { label: "Patients", count: users.filter((u) => u.role === "ROLE_PATIENT").length, icon: "🧑" },
-                    ].map((stat, i) => (
-                        <div key={i} className="bg-white rounded-xl border border-slate-200 p-4">
-                            <div className="flex items-center justify-between">
-                                <p className="text-sm text-slate-500">{stat.label}</p>
-                                <span className="text-lg">{stat.icon}</span>
-                            </div>
-                            <p className="text-2xl font-bold text-slate-800 mt-1">{stat.count}</p>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Filter Tabs */}
-                <div className="flex gap-2 mb-6 flex-wrap">
-                    {["ALL", "ROLE_ADMIN", "ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_PATIENT"].map((role) => (
-                        <button
-                            key={role}
-                            onClick={() => setFilterRole(role)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                filterRole === role
-                                    ? "bg-teal-600 text-white"
-                                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                            }`}
-                        >
-                            {role === "ALL" ? "All" : roleLabels[role]}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Users Table */}
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                    {loading ? (
-                        <div className="p-8 text-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-600 border-t-transparent mx-auto" />
-                        </div>
-                    ) : filteredUsers.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500">No users found</div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-slate-50 border-b border-slate-200">
-                                <tr>
-                                    <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">User</th>
-                                    <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
-                                    <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
-                                    <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                {filteredUsers.map((u) => (
-                                    <tr key={u.id} className="hover:bg-slate-50">
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm font-medium text-slate-800">{u.firstName} {u.lastName}</p>
-                                            <p className="text-xs text-slate-500">@{u.username}</p>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600">{u.email}</td>
-                                        <td className="px-6 py-4">
+            <Card aria-busy={loading}>
+                <CardHeader
+                    title="Users"
+                    description={loading ? "Loading…" : `${data?.totalElements ?? users.length} ${filter === "ALL" ? "accounts" : statusLabel("role", filter).toLowerCase() + " accounts"}`}
+                    actions={<FilterGroup label="Filter by role" options={FILTERS} value={filter} onChange={(v) => { setFilter(v); setPage(0); }} />}
+                />
+                {loading ? (
+                    <SkeletonRows label="Loading users" />
+                ) : error ? (
+                    <LoadError message={error} onRetry={reload} />
+                ) : users.length === 0 ? (
+                    <EmptyState icon="users" title="No users" description="No accounts match this filter." />
+                ) : (
+                    <>
+                        <DataTable
+                            caption="Users"
+                            rows={users}
+                            columns={[
+                                {
+                                    key: "user",
+                                    header: "User",
+                                    render: (u) => (
+                                        <>
+                                            <span className="font-medium text-slate-900">{fullName(u.firstName, u.lastName)}</span>
+                                            {isSelf(u) && <span className="ml-1.5 text-xs text-slate-600">(you)</span>}
+                                            <span className="block text-xs text-slate-600">@{u.username}</span>
+                                        </>
+                                    ),
+                                },
+                                { key: "email", header: "Email", render: (u) => u.email },
+                                {
+                                    key: "role",
+                                    header: "Role",
+                                    render: (u) => (
+                                        <>
+                                            <label htmlFor={`role-${u.id}`} className="sr-only">Role for {fullName(u.firstName, u.lastName)}</label>
                                             <select
+                                                id={`role-${u.id}`}
                                                 value={u.role}
-                                                onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                                                className={`px-3 py-1 rounded-full text-xs font-medium border cursor-pointer ${roleColors[u.role]}`}
+                                                disabled={isSelf(u)}
+                                                title={isSelf(u) ? "You can't change your own role" : undefined}
+                                                onChange={(e) => setConfirm({ kind: "role", user: u, role: e.target.value })}
+                                                className="rounded-control border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:bg-slate-100"
                                             >
-                                                <option value="ROLE_ADMIN">Admin</option>
-                                                <option value="ROLE_DOCTOR">Doctor</option>
-                                                <option value="ROLE_RECEPTIONIST">Receptionist</option>
-                                                <option value="ROLE_PATIENT">Patient</option>
+                                                {ROLES.map((r) => <option key={r} value={r}>{statusLabel("role", r)}</option>)}
                                             </select>
-                                        </td>
-                                        <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${u.enabled ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-                          {u.enabled ? "Active" : "Disabled"}
-                        </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <button
-                                                onClick={() => handleToggleStatus(u.id)}
-                                                className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${u.enabled ? "text-red-600 hover:bg-red-50" : "text-emerald-600 hover:bg-emerald-50"}`}
-                                            >
-                                                {u.enabled ? "Disable" : "Enable"}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            </main>
+                                        </>
+                                    ),
+                                },
+                                { key: "status", header: "Status", render: (u) => <StatusBadge kind="account" value={u.enabled} /> },
+                                {
+                                    key: "actions",
+                                    header: "Actions",
+                                    render: (u) => isSelf(u) ? <span className="text-slate-500">—</span> : (
+                                        <Button
+                                            size="sm"
+                                            variant={u.enabled ? "dangerOutline" : "secondary"}
+                                            onClick={() => setConfirm({ kind: "status", user: u })}
+                                            aria-label={`${u.enabled ? "Disable" : "Enable"} ${fullName(u.firstName, u.lastName)}`}
+                                        >
+                                            {u.enabled ? "Disable" : "Enable"}
+                                        </Button>
+                                    ),
+                                },
+                            ]}
+                        />
+                        {filter === "ALL" && (
+                            <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onChange={setPage} disabled={loading} />
+                        )}
+                    </>
+                )}
+            </Card>
 
-            {/* Create User Modal */}
-            {showCreateModal && (
-                <CreateUserModal
-                    onClose={() => setShowCreateModal(false)}
-                    onCreated={(newUser) => {
-                        setUsers([...users, newUser]);
-                        setShowCreateModal(false);
-                        showAlert("User created successfully");
-                    }}
-                    allowedRoles={["ROLE_ADMIN", "ROLE_DOCTOR", "ROLE_RECEPTIONIST"]}
+            {creating && (
+                <CreateUserDialog
+                    allowedRoles={["ROLE_DOCTOR", "ROLE_RECEPTIONIST", "ROLE_ADMIN"]}
                     apiCall={adminService.createUser}
+                    onClose={() => setCreating(false)}
+                    onCreated={(u) => {
+                        setCreating(false);
+                        showSuccess(`Account created for ${fullName(u.firstName, u.lastName)}`);
+                        reload();
+                    }}
                 />
             )}
-        </div>
-    );
-}
 
-// Shared modal — also used by ReceptionistDashboard
-export function CreateUserModal({ onClose, onCreated, allowedRoles, apiCall }) {
-    const [formData, setFormData] = useState({
-        username: "",
-        email: "",
-        password: "",
-        firstName: "",
-        lastName: "",
-        role: allowedRoles[0],
-    });
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
-
-    const roleLabels = {
-        ROLE_ADMIN: "Admin",
-        ROLE_DOCTOR: "Doctor",
-        ROLE_RECEPTIONIST: "Receptionist",
-        ROLE_PATIENT: "Patient",
-    };
-
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-        if (error) setError("");
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
-
-        try {
-            const response = await apiCall(formData);
-            if (response.success) {
-                onCreated(response.data);
-            } else {
-                setError(response.message);
-            }
-        } catch (err) {
-            setError(err.response?.data?.message || "Failed to create user");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-                <div className="flex items-center justify-between p-6 border-b border-slate-200">
-                    <h2 className="text-lg font-bold text-slate-800">Create New User</h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">First Name</label>
-                            <input name="firstName" type="text" required value={formData.firstName} onChange={handleChange}
-                                   className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Last Name</label>
-                            <input name="lastName" type="text" required value={formData.lastName} onChange={handleChange}
-                                   className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
-                        <input name="username" type="text" required value={formData.username} onChange={handleChange}
-                               className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
-                        <input name="email" type="email" required value={formData.email} onChange={handleChange}
-                               className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
-                        <input name="password" type="password" required value={formData.password} onChange={handleChange}
-                               className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
-                        <select name="role" value={formData.role} onChange={handleChange}
-                                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
-                            {allowedRoles.map((r) => (
-                                <option key={r} value={r}>{roleLabels[r]}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <button type="submit" disabled={loading}
-                            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                        {loading ? (
-                            <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> Creating...</>
-                        ) : (
-                            "Create User"
-                        )}
-                    </button>
-                </form>
-            </div>
-        </div>
+            {confirm && (
+                <ConfirmDialog
+                    title={confirm.kind === "role"
+                        ? `Change role to ${statusLabel("role", confirm.role)}?`
+                        : `${confirm.user.enabled ? "Disable" : "Enable"} this account?`}
+                    message={confirm.kind === "role" ? (
+                        <>
+                            <p>{fullName(confirm.user.firstName, confirm.user.lastName)} will change from {statusLabel("role", confirm.user.role)} to {statusLabel("role", confirm.role)} and will see that role's screens from their next request.</p>
+                            {confirm.role === "ROLE_PATIENT" && (
+                                <p className="mt-2 text-amber-900">Patient accounts need a patient record created by reception; changing a staff account to Patient won't create one.</p>
+                            )}
+                        </>
+                    ) : confirm.user.enabled
+                        ? `${fullName(confirm.user.firstName, confirm.user.lastName)} will be signed out and won't be able to sign in until the account is enabled again.`
+                        : `${fullName(confirm.user.firstName, confirm.user.lastName)} will be able to sign in again.`}
+                    confirmLabel={confirm.kind === "role" ? "Change role" : confirm.user.enabled ? "Disable account" : "Enable account"}
+                    tone={confirm.kind === "status" && confirm.user.enabled ? "danger" : "primary"}
+                    loading={working}
+                    onConfirm={runConfirmed}
+                    onCancel={() => setConfirm(null)}
+                />
+            )}
+        </AppShell>
     );
 }

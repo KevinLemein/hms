@@ -1,1 +1,57 @@
 @import "tailwindcss";
+
+/*
+ * MediCare design tokens (Tailwind 4 @theme -> utilities such as
+ * bg-brand-700, rounded-card, shadow-overlay).
+ *
+ * Brand stays the existing teal. Primary actions use brand-700, not 600:
+ * white text on teal-600 is ~3.7:1, below the WCAG AA 4.5:1 minimum for
+ * normal-size text; teal-700 is ~5.5:1.
+ *
+ * Semantic colours map to Tailwind's palette in one place (StatusBadge,
+ * Alert, Button) rather than being redefined per screen:
+ *   success = emerald, warning = amber, danger = red, info = sky, neutral = slate.
+ */
+@theme {
+    --color-brand-50: #f0fdfa;
+    --color-brand-100: #ccfbf1;
+    --color-brand-200: #99f6e4;
+    --color-brand-500: #14b8a6;
+    --color-brand-600: #0d9488;
+    --color-brand-700: #0f766e;
+    --color-brand-800: #115e59;
+    --color-brand-900: #134e4a;
+
+    --radius-control: 0.5rem;
+    --radius-card: 0.75rem;
+
+    --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+    --shadow-overlay: 0 10px 30px -10px rgb(15 23 42 / 0.35);
+}
+
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        @apply bg-slate-50 text-slate-800 antialiased;
+    }
+
+    /* One visible keyboard-focus style everywhere; mouse clicks don't show it. */
+    :focus-visible {
+        outline: 2px solid var(--color-brand-700);
+        outline-offset: 2px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

@@ -7,7 +7,19 @@ package com.kevinlemein.backend.exception;
  * isn't allowed to assign. Mapped to HTTP 400 by GlobalExceptionHandler.
  */
 public class InvalidRequestException extends RuntimeException {
+    private final String code;
+
     public InvalidRequestException(String message) {
+        this(ErrorCodes.BAD_REQUEST, message);
+    }
+
+    /** With a specific code from {@link ErrorCodes} that clients can branch on. */
+    public InvalidRequestException(String code, String message) {
         super(message);
+        this.code = code;
+    }
+
+    public String getCode() {
+        return code;
     }
 }

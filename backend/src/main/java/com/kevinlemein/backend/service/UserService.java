@@ -1,8 +1,10 @@
 package com.kevinlemein.backend.service;
 
+import com.kevinlemein.backend.exception.ErrorCodes;
 import com.kevinlemein.backend.dto.CreateUserRequest;
 import com.kevinlemein.backend.dto.PagedResponse;
 import com.kevinlemein.backend.dto.UserResponse;
+import com.kevinlemein.backend.exception.ConflictException;
 import com.kevinlemein.backend.exception.DuplicateResourceException;
 import com.kevinlemein.backend.exception.InvalidRequestException;
 import com.kevinlemein.backend.exception.ResourceNotFoundException;
@@ -38,7 +40,8 @@ public class UserService {
     /**
      * Create a user with a specific role.
      * Admin can create: ADMIN, DOCTOR, RECEPTIONIST
-     * Receptionist can create: DOCTOR, RECEPTIONIST, PATIENT
+     * Receptionist can create: DOCTOR, RECEPTIONIST
+     * (Patients are created only by patient registration.)
      *
      * If the requested role is DOCTOR, a corresponding row is also created
      * in `doctors` in the same transaction -- prescriptions.doctor_id has a
@@ -62,16 +65,18 @@ public class UserService {
             throw new InvalidRequestException("Receptionists can't create admins");
         }
 
-        if (creatorRole == Role.ROLE_ADMIN && requestedRole == Role.ROLE_PATIENT) {
-            throw new InvalidRequestException("Admins cannot create patients.");
+        // Patient accounts need a patient record; they are created only via
+        // POST /api/patients/register, never as bare user accounts.
+        if (requestedRole == Role.ROLE_PATIENT) {
+            throw new InvalidRequestException("Patients are registered through patient registration, not as staff accounts.");
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email is already registered");
+            throw new DuplicateResourceException(ErrorCodes.DUPLICATE_ACCOUNT, "Email is already registered");
         }
 
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new DuplicateResourceException("Username is already taken");
+            throw new DuplicateResourceException(ErrorCodes.DUPLICATE_ACCOUNT, "Username is already taken");
         }
 
         User user = User.builder()
@@ -113,6 +118,12 @@ public class UserService {
         return PagedResponse.from(users.map(this::mapToResponse));
     }
 
+    /** One user by id (used by GET /api/auth/me). */
+    public UserResponse getUser(Long userId) {
+        return mapToResponse(userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found")));
+    }
+
     /**
      * Get users filtered by role
      */
@@ -128,9 +139,23 @@ public class UserService {
      * Update the user's role
      */
 
-    public UserResponse updateUserRole (Long userId, String newRole) {
+    /**
+     * Change a user's role. Rules:
+     * - an admin can't change their own role (prevents locking the last
+     *   admin out; the actor is always an active admin);
+     * - only staff roles can be assigned, and only to staff accounts: a
+     *   patient account needs a patient record, which only reception
+     *   registration creates;
+     * - becoming a doctor creates the doctor profile prescribing requires.
+     */
+    @Transactional
+    public UserResponse updateUserRole(Long userId, String newRole, Long actorUserId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (newRole == null || newRole.isBlank()) {
+            throw new InvalidRequestException("Role is required");
+        }
 
         Role role;
         try{
@@ -140,8 +165,18 @@ public class UserService {
             throw new InvalidRequestException("Invalid role " + newRole);
         }
 
+        if (user.getId().equals(actorUserId)) {
+            throw new ConflictException(ErrorCodes.ADMIN_SELF_CHANGE, "You can't change your own role");
+        }
+        if (role == Role.ROLE_PATIENT || user.getRole() == Role.ROLE_PATIENT) {
+            throw new InvalidRequestException("Roles can only be changed between staff roles; patients are registered by reception");
+        }
+
         user.setRole(role);
         User updatedUser = userRepository.save(user);
+        if (role == Role.ROLE_DOCTOR) {
+            ensureDoctorProfile(updatedUser, actorUserId);
+        }
         return mapToResponse(updatedUser);
     }
 
@@ -149,13 +184,32 @@ public class UserService {
      * Toggle user enabled/disabled
      */
 
-    public UserResponse toggleUserStatus(Long userId) {
+    /** Enable/disable an account. An admin can't disable their own account. */
+    @Transactional
+    public UserResponse toggleUserStatus(Long userId, Long actorUserId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getId().equals(actorUserId)) {
+            throw new ConflictException(ErrorCodes.ADMIN_SELF_CHANGE, "You can't disable your own account");
+        }
 
         user.setEnabled(!user.isEnabled());
         User updatedUser = userRepository.save(user);
         return mapToResponse(updatedUser);
+    }
+
+    /** Creates the doctors row for a doctor account if it doesn't exist yet (idempotent). */
+    private void ensureDoctorProfile(User doctorUser, Long createdById) {
+        if (doctorRepository.findByUserId(doctorUser.getId()).isPresent()) {
+            return;
+        }
+        doctorRepository.save(Doctor.builder()
+                .userId(doctorUser.getId())
+                .specialityId(DEFAULT_SPECIALITY_ID)
+                .isAvailable(true)
+                .createdById(createdById)
+                .build());
     }
 
 
