@@ -79,6 +79,14 @@ public class Bill {
         return getTotalAmount().subtract(getAmountPaid());
     }
 
+    /** Attaches a charge with its total computed, then refreshes the status. */
+    public void addLineItem(BillLineItem item) {
+        item.setBill(this);
+        item.calculateTotal();
+        lineItems.add(item);
+        recalculateStatus();
+    }
+
     public void recalculateStatus() {
         if (status == BillStatus.CANCELLED) return; // terminal, never auto-transitions out
         BigDecimal paid = getAmountPaid();

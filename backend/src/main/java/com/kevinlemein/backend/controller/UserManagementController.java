@@ -1,5 +1,7 @@
 package com.kevinlemein.backend.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.kevinlemein.backend.dto.ApiResponse;
 import com.kevinlemein.backend.dto.CreateUserRequest;
 import com.kevinlemein.backend.dto.UserResponse;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Reception staff tools", description = "Endpoints used by the reception desk")
 @RestController
 @RequestMapping("/api/receptionist")
 @RequiredArgsConstructor
@@ -25,6 +28,7 @@ public class UserManagementController {
     /**
      * Receptionist creates a doctor or another receptionist
      */
+    @Operation(summary = "Create a doctor or receptionist account", description = "Receptionist.")
     @PostMapping("/users")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @Valid @RequestBody CreateUserRequest request
@@ -38,6 +42,7 @@ public class UserManagementController {
     /**
      * Receptionist can view doctors
      */
+    @Operation(summary = "List doctors", description = "Receptionist. For booking forms.")
     @GetMapping("/doctors")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getDoctors() {
         List<UserResponse> doctors = userService.getUsersByRole(Role.ROLE_DOCTOR);

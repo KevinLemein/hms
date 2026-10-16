@@ -60,6 +60,11 @@ public class JwtService {
                 && !isTokenExpired(token);
     }
 
+    /** The token's expiry (its exp claim). */
+    public java.time.Instant expiresAt(String token) {
+        return extractExpiration(token).toInstant();
+    }
+
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }

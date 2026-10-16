@@ -26,12 +26,13 @@ export function ToastProvider({ children }) {
     return (
         <ToastContext.Provider value={{ showError, showSuccess, dismiss }}>
             {children}
-            <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 w-full max-w-sm">
+            <div className="fixed top-4 right-4 left-4 sm:left-auto z-[60] flex flex-col gap-2 sm:w-full sm:max-w-sm">
                 {toasts.map((toast) => (
                     <div
                         key={toast.id}
-                        role="alert"
-                        className={`flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm animate-in fade-in slide-in-from-top-2 ${
+                        // Errors interrupt (alert); confirmations are announced politely (status).
+                        role={toast.type === "success" ? "status" : "alert"}
+                        className={`flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm ${
                             toast.type === "success"
                                 ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                                 : "bg-red-50 border-red-200 text-red-800"
@@ -48,7 +49,7 @@ export function ToastProvider({ children }) {
                         <button
                             onClick={() => dismiss(toast.id)}
                             className="flex-shrink-0 opacity-60 hover:opacity-100"
-                            aria-label="Dismiss"
+                            aria-label="Dismiss notification"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

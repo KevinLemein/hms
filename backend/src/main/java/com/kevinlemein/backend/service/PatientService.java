@@ -1,5 +1,6 @@
 package com.kevinlemein.backend.service;
 
+import com.kevinlemein.backend.exception.ErrorCodes;
 import com.kevinlemein.backend.dto.PatientResponse;
 import com.kevinlemein.backend.dto.PagedResponse;
 import com.kevinlemein.backend.dto.RegisterPatientRequest;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,8 +34,10 @@ public class PatientService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz";
-    private static final int PASSWORD_LENGTH = 6;
+    // Temporary patient passwords: 12 characters from an alphabet without
+    // look-alikes (no 0/O, 1/l/I), always including a digit. Was 6 letters.
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+    private static final int PASSWORD_LENGTH = 12;
 
     /**
      * Register a new patient — creates both User and Patient records.
@@ -44,7 +48,14 @@ public class PatientService {
 
         // Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email is already registered");
+            throw new DuplicateResourceException(ErrorCodes.DUPLICATE_ACCOUNT, "Email is already registered");
+        }
+
+        LocalDate dateOfBirth;
+        try {
+            dateOfBirth = LocalDate.parse(request.getDateOfBirth());
+        } catch (DateTimeParseException e) {
+            throw new InvalidRequestException("Date of birth must be in the format yyyy-MM-dd");
         }
 
         // Generate username from email prefix
@@ -78,7 +89,7 @@ public class PatientService {
         Patient patient = Patient.builder()
                 .user(savedUser)
                 .phoneNumber(request.getPhoneNumber())
-                .dateOfBirth(LocalDate.parse(request.getDateOfBirth()))
+                .dateOfBirth(dateOfBirth)
                 .gender(gender)
                 .address(request.getAddress())
                 .emergencyContactName(request.getEmergencyContactName())
@@ -146,11 +157,15 @@ public class PatientService {
 
     private String generatePassword() {
         SecureRandom random = new SecureRandom();
-        StringBuilder password = new StringBuilder(PASSWORD_LENGTH);
-        for (int i = 0; i < PASSWORD_LENGTH; i++) {
-            password.append(PASSWORD_CHARS.charAt(random.nextInt(PASSWORD_CHARS.length())));
-        }
-        return password.toString();
+        String password;
+        do {
+            StringBuilder sb = new StringBuilder(PASSWORD_LENGTH);
+            for (int i = 0; i < PASSWORD_LENGTH; i++) {
+                sb.append(PASSWORD_CHARS.charAt(random.nextInt(PASSWORD_CHARS.length())));
+            }
+            password = sb.toString();
+        } while (password.chars().noneMatch(Character::isDigit));
+        return password;
     }
 
     private PatientResponse mapToResponse(Patient patient) {

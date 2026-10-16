@@ -15,10 +15,13 @@ public class CurrentUserProvider {
     private final UserRepository userRepository;
 
     public Long getCurrentUserId() {
+        return getCurrentUser().getId();
+    }
+
+    public User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
-        User user = userRepository.findByEmail(email)
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
-        return user.getId();
     }
 }

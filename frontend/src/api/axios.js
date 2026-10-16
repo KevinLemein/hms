@@ -2,8 +2,10 @@ import axios from "axios";
 
 // In development (Vite dev server): requests go to http://localhost:8080/api
 // In production (Docker/nginx): nginx proxies /api/ to backend, so just use /api
+// VITE_API_BASE_URL overrides both (used by the end-to-end tests, which run
+// the backend on a different port).
 const api = axios.create({
-    baseURL: import.meta.env.DEV ? "http://localhost:8080/api" : "/api",
+    baseURL: import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? "http://localhost:8080/api" : "/api"),
     headers: {
         "Content-Type": "application/json",
     },
@@ -34,7 +36,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        // A 401 from the sign-in request itself means wrong credentials, not
+        // an expired session; the login form shows that error itself.
+        const isLoginRequest = error.config?.url?.endsWith("/auth/login");
+        if (error.response?.status === 401 && !isLoginRequest) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
             window.dispatchEvent(new CustomEvent("auth:session-expired"));

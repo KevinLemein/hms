@@ -6,8 +6,9 @@ const patientService = {
         return response.data;
     },
 
-    getAllPatients: async () => {
-        const response = await api.get("/patients");
+    // Paged (PagedResponse). page is 0-based.
+    getAllPatients: async (page = 0, size = 20) => {
+        const response = await api.get("/patients", { params: { page, size, sort: "id,desc" } });
         return response.data;
     },
 
@@ -17,6 +18,28 @@ const patientService = {
     },
     getByUserId: async (userId) => {
         const response = await api.get(`/patients/by-user/${userId}`);
+        return response.data;
+    },
+
+    // Patient self-service: the backend resolves the patient from the JWT,
+    // so these never take an id.
+    getMe: async () => {
+        const response = await api.get("/patients/me");
+        return response.data;
+    },
+
+    getMyAppointments: async () => {
+        const response = await api.get("/patients/me/appointments");
+        return response.data;
+    },
+
+    getMyPrescriptions: async () => {
+        const response = await api.get("/patients/me/prescriptions");
+        return response.data;
+    },
+
+    getMyBills: async () => {
+        const response = await api.get("/patients/me/bills");
         return response.data;
     },
 

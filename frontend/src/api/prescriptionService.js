@@ -10,6 +10,12 @@ const prescriptionService = {
         return response.data.data;
     },
 
+    // Prescriptions issued by the signed-in doctor (doctors can't list all).
+    getMine: async () => {
+        const response = await api.get("/prescriptions/mine");
+        return response.data.data;
+    },
+
     getById: async (id) => {
         const response = await api.get(`/prescriptions/${id}`);
         return response.data.data;
@@ -19,9 +25,13 @@ const prescriptionService = {
     // from the authenticated JWT , so it can't
     // be spoofed. `data` should be:
     //   { appointmentId, drugId, dossage, duration, notes, quantity }
+    // The backend deducts stock and charges the drug (priced from the drug
+    // catalogue) in the same transaction. An identical re-submission returns
+    // the existing prescription with 200 instead of 201: `created` tells the
+    // caller which happened.
     create: async (data) => {
         const response = await api.post("/prescriptions", data);
-        return response.data;
+        return { ...response.data, created: response.status === 201 };
     },
 
     update: async (id, data) => {

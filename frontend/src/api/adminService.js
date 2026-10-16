@@ -6,8 +6,9 @@ const adminService = {
         return response.data;
     },
 
-    getAllUsers: async () => {
-        const response = await api.get("/admin/users");
+    // Paged (PagedResponse). page is 0-based.
+    getAllUsers: async (page = 0, size = 20) => {
+        const response = await api.get("/admin/users", { params: { page, size, sort: "id,asc" } });
         return response.data;
     },
 

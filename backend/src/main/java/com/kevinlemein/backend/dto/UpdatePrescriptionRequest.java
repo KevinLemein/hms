@@ -1,5 +1,6 @@
 package com.kevinlemein.backend.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -15,10 +16,13 @@ import lombok.Data;
 public class UpdatePrescriptionRequest {
 
     @NotBlank(message = "Dosage is required")
+    @Schema(example = "1 capsule")
     private String dossage;
 
     @NotBlank(message = "Duration is required")
+    @Schema(example = "twice a day for 7 days")
     private String duration;
 
+    @Schema(example = "Take after meals")
     private String notes;
 }

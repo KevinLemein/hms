@@ -1,0 +1,4905 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "MediCare API",
+    "description" : "Client API for the MediCare clinic system (web app and mobile).\n\n**Authentication:** `POST /api/auth/login` returns a JWT; send it as `Authorization: Bearer <token>`. 401 = sign in again; 403 = signed in but not allowed (never a session expiry).\n\n**Envelope:** every response is `{ success, message, data?, timestamp }`. Errors add a stable `code`, the `requestId` (also in the `X-Request-Id` header) and, for validation failures, per-field `errors`. Branch on `code`, not on `message`.\n\n**Compatibility:** changes are additive (new endpoints, new optional fields, new error codes). Clients must ignore unknown fields and treat unknown error codes by HTTP status.",
+    "version" : "1"
+  },
+  "servers" : [ {
+    "url" : "/",
+    "description" : "This server"
+  } ],
+  "security" : [ {
+    "bearerAuth" : [ ]
+  } ],
+  "tags" : [ {
+    "name" : "Billing",
+    "description" : "Bills, staff-entered charges and payments"
+  }, {
+    "name" : "Authentication",
+    "description" : "Sign in, current user, password change"
+  }, {
+    "name" : "Appointments",
+    "description" : "Booking, queue and status changes"
+  }, {
+    "name" : "Reception staff tools",
+    "description" : "Endpoints used by the reception desk"
+  }, {
+    "name" : "Prescriptions",
+    "description" : "Prescribing (which also dispenses and bills) and reading prescriptions"
+  }, {
+    "name" : "Drugs",
+    "description" : "Drug catalogue (read-only)"
+  }, {
+    "name" : "Patients",
+    "description" : "Patient records; `/me` endpoints for the signed-in patient"
+  }, {
+    "name" : "Administration",
+    "description" : "Staff accounts and roles"
+  } ],
+  "paths" : {
+    "/api/prescriptions/{id}" : {
+      "get" : {
+        "tags" : [ "Prescriptions" ],
+        "summary" : "One prescription",
+        "description" : "Receptionist, admin, or the prescribing doctor.",
+        "operationId" : "getPrescriptionById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePrescriptionResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Prescriptions" ],
+        "summary" : "Edit dosage, duration or notes",
+        "description" : "The prescribing doctor. Drug and quantity can't be changed (delete and re-prescribe).",
+        "operationId" : "updatePrescription",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdatePrescriptionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePrescriptionResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Prescriptions" ],
+        "summary" : "Delete a prescription",
+        "description" : "The prescribing doctor, or admin. Restores stock and removes its charge; refused (409 `BILL_HAS_PAYMENTS`) once the bill has payments.",
+        "operationId" : "deletePrescription",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/receptionist/users" : {
+      "post" : {
+        "tags" : [ "Reception staff tools" ],
+        "summary" : "Create a doctor or receptionist account",
+        "description" : "Receptionist.",
+        "operationId" : "createUser",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/prescriptions" : {
+      "get" : {
+        "tags" : [ "Prescriptions" ],
+        "summary" : "All prescriptions",
+        "description" : "Receptionist, admin.",
+        "operationId" : "getAllPrescriptions",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListPrescriptionResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Prescriptions" ],
+        "summary" : "Prescribe (dispense and bill)",
+        "description" : "Doctor, on their own appointment. Deducts stock and adds the drug to the visit's bill, priced by the server from the drug catalogue (no price in the request). An identical retry returns the existing prescription with **200** (201 when created). Conflicts (409): `INSUFFICIENT_STOCK`, `DRUG_NOT_PRICED`, `ALREADY_PRESCRIBED`, `APPOINTMENT_NOT_ACTIVE`, `BILL_CANCELLED`.",
+        "operationId" : "createPrescription",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreatePrescriptionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePrescriptionResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/register" : {
+      "post" : {
+        "tags" : [ "Patients" ],
+        "summary" : "Register a patient",
+        "description" : "Receptionist, admin. Creates the patient's sign-in account; the response contains `generatedPassword` once.",
+        "operationId" : "registerPatient",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterPatientRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePatientResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bills" : {
+      "get" : {
+        "tags" : [ "Billing" ],
+        "summary" : "List bills (paged)",
+        "description" : "Receptionist, admin. Newest first. Query: `page`, `size`.",
+        "operationId" : "getAllBills",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePagedResponseBillResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Billing" ],
+        "summary" : "Create a bill",
+        "description" : "Doctor, receptionist, admin. Returns the existing bill if the appointment already has one.",
+        "operationId" : "createBill",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateBillRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseBillResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bills/{billId}/payments" : {
+      "post" : {
+        "tags" : [ "Billing" ],
+        "summary" : "Record a payment",
+        "description" : "Receptionist, admin. `reference` required for MPESA and CARD; a reference already recorded: 409 `DUPLICATE_PAYMENT_REFERENCE`; more than the balance: 400.",
+        "operationId" : "recordPayment",
+        "parameters" : [ {
+          "name" : "billId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RecordPaymentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseBillResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bills/{billId}/items" : {
+      "post" : {
+        "tags" : [ "Billing" ],
+        "summary" : "Add a staff-entered charge",
+        "description" : "Doctor, receptionist, admin. `source` MANUAL or LAB only; consultation and medication charges are created by the server. Repeating the same (source, sourceReferenceId) is a no-op.",
+        "operationId" : "addItem",
+        "parameters" : [ {
+          "name" : "billId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddLineItemRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseBillResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "summary" : "Sign in",
+        "description" : "Public. Returns a JWT (send as `Authorization: Bearer <token>`) and `expiresAt`. Wrong email/password: 401 `INVALID_CREDENTIALS`. There are no refresh tokens: sign in again after `expiresAt`.",
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseAuthResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Wrong email or password (`INVALID_CREDENTIALS`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ ]
+      }
+    },
+    "/api/auth/change-password" : {
+      "post" : {
+        "tags" : [ "Authentication" ],
+        "summary" : "Change own password",
+        "description" : "Any signed-in user. Wrong current password: 400 `INVALID_CURRENT_PASSWORD` (not 401). Existing tokens stay valid until they expire.",
+        "operationId" : "changePassword",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments" : {
+      "get" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "All appointments",
+        "description" : "Receptionist, admin. Not paged.",
+        "operationId" : "getAllAppointments",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "Book an appointment",
+        "description" : "Receptionist. Also creates the visit's bill with the consultation fee, in one transaction. Taken slot: 409 `SLOT_UNAVAILABLE`. Times are clinic local time (Africa/Nairobi), `yyyy-MM-ddTHH:mm:ss`.",
+        "operationId" : "bookAppointment",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BookAppointmentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users" : {
+      "get" : {
+        "tags" : [ "Administration" ],
+        "summary" : "List users (paged)",
+        "description" : "Admin. Query: `page`, `size`, `sort`.",
+        "operationId" : "getAllUsers",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePagedResponseUserResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Administration" ],
+        "summary" : "Create a staff account",
+        "description" : "Admin. Roles: ADMIN, DOCTOR, RECEPTIONIST (patients are registered via patient registration).",
+        "operationId" : "createUser_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bills/{billId}/cancel" : {
+      "patch" : {
+        "tags" : [ "Billing" ],
+        "summary" : "Cancel a bill",
+        "description" : "Admin. Not allowed once payments exist. Body: optional plain-text reason.",
+        "operationId" : "cancelBill",
+        "parameters" : [ {
+          "name" : "billId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseBillResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/{id}/status" : {
+      "patch" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "Change appointment status",
+        "description" : "Receptionist/admin: any allowed transition. Doctor: own appointments, to IN_CONSULTATION or COMPLETED only. Lifecycle: PENDING -> WAITING | CANCELLED | NO_SHOW; WAITING -> IN_CONSULTATION | CANCELLED | NO_SHOW; IN_CONSULTATION -> COMPLETED. Invalid transition: 409 `INVALID_STATE_TRANSITION`.",
+        "operationId" : "updateStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateAppointmentStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/toggle-status" : {
+      "patch" : {
+        "tags" : [ "Administration" ],
+        "summary" : "Enable or disable an account",
+        "description" : "Admin. Not your own account (409 `ADMIN_SELF_CHANGE`). A disabled account's tokens stop working immediately.",
+        "operationId" : "toggleUserStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/role" : {
+      "patch" : {
+        "tags" : [ "Administration" ],
+        "summary" : "Change a user's role",
+        "description" : "Admin. Staff roles only; not your own account (409 `ADMIN_SELF_CHANGE`).",
+        "operationId" : "updateUserRole",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "additionalProperties" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/receptionist/doctors" : {
+      "get" : {
+        "tags" : [ "Reception staff tools" ],
+        "summary" : "List doctors",
+        "description" : "Receptionist. For booking forms.",
+        "operationId" : "getDoctors",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListUserResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/prescriptions/mine" : {
+      "get" : {
+        "tags" : [ "Prescriptions" ],
+        "summary" : "Prescriptions I issued",
+        "description" : "Doctor. Newest first.",
+        "operationId" : "getMyPrescriptions",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListPrescriptionResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/prescriptions/doctor/{doctorId}" : {
+      "get" : {
+        "tags" : [ "Prescriptions" ],
+        "summary" : "Prescriptions by doctor profile",
+        "description" : "Receptionist, admin, or that doctor. `doctorId` is the doctor *profile* id (not the user id).",
+        "operationId" : "getPrescriptionsByDoctor",
+        "parameters" : [ {
+          "name" : "doctorId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListPrescriptionResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/prescriptions/appointment/{appointmentId}" : {
+      "get" : {
+        "tags" : [ "Prescriptions" ],
+        "summary" : "Prescriptions for an appointment",
+        "description" : "Receptionist, admin, the appointment's doctor, or its patient.",
+        "operationId" : "getPrescriptionsByAppointment",
+        "parameters" : [ {
+          "name" : "appointmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListPrescriptionResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients" : {
+      "get" : {
+        "tags" : [ "Patients" ],
+        "summary" : "List patients (paged)",
+        "description" : "Receptionist, admin, doctor. Query: `page` (0-based), `size`, `sort`.",
+        "operationId" : "getAllPatients",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/Pageable"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePagedResponsePatientResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/{id}" : {
+      "get" : {
+        "tags" : [ "Patients" ],
+        "summary" : "Patient by id",
+        "description" : "Receptionist, admin, doctor.",
+        "operationId" : "getPatientById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePatientResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/search" : {
+      "get" : {
+        "tags" : [ "Patients" ],
+        "summary" : "Search patients",
+        "description" : "Receptionist, admin, doctor. Matches name, email or phone. Not paged.",
+        "operationId" : "searchPatients",
+        "parameters" : [ {
+          "name" : "query",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListPatientResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/me" : {
+      "get" : {
+        "tags" : [ "Patients" ],
+        "summary" : "My profile",
+        "description" : "Patient only. Resolved from the token; never takes an id.",
+        "operationId" : "getMyProfile",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePatientResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/me/prescriptions" : {
+      "get" : {
+        "tags" : [ "Patients" ],
+        "summary" : "My prescriptions",
+        "description" : "Patient only. Includes drug name and prescribing doctor. Newest first.",
+        "operationId" : "getMyPrescriptions_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListPrescriptionResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/me/bills" : {
+      "get" : {
+        "tags" : [ "Patients" ],
+        "summary" : "My bills",
+        "description" : "Patient only. Line items, payments, balance.",
+        "operationId" : "getMyBills",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListBillResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/me/appointments" : {
+      "get" : {
+        "tags" : [ "Patients" ],
+        "summary" : "My appointments",
+        "description" : "Patient only. Newest first.",
+        "operationId" : "getMyAppointments",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/by-user/{userId}" : {
+      "get" : {
+        "tags" : [ "Patients" ],
+        "summary" : "Patient by user id",
+        "description" : "Staff, or the patient themself. Prefer `/api/patients/me` in patient apps.",
+        "operationId" : "getPatientByUserId",
+        "parameters" : [ {
+          "name" : "userId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponsePatientResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/drugs" : {
+      "get" : {
+        "tags" : [ "Drugs" ],
+        "summary" : "Drug catalogue",
+        "description" : "Doctor, receptionist, admin. Includes stock (`quantity`) and price (`cost`).",
+        "operationId" : "getAllDrugs",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListDrugResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/drugs/{id}" : {
+      "get" : {
+        "tags" : [ "Drugs" ],
+        "summary" : "One drug",
+        "description" : "Doctor, receptionist, admin.",
+        "operationId" : "getDrugById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDrugResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bills/{id}" : {
+      "get" : {
+        "tags" : [ "Billing" ],
+        "summary" : "One bill",
+        "description" : "Receptionist, admin.",
+        "operationId" : "getBillById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseBillResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bills/status/{status}" : {
+      "get" : {
+        "tags" : [ "Billing" ],
+        "summary" : "Bills by status",
+        "description" : "Receptionist, admin. Status: OPEN, PARTIALLY_PAID, PAID, CANCELLED. Not paged.",
+        "operationId" : "getBillsByStatus",
+        "parameters" : [ {
+          "name" : "status",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListBillResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bills/patient/{patientId}" : {
+      "get" : {
+        "tags" : [ "Billing" ],
+        "summary" : "A patient's bills",
+        "description" : "Staff, or the patient themself. Prefer `/api/patients/me/bills` in patient apps.",
+        "operationId" : "getBillsByPatient",
+        "parameters" : [ {
+          "name" : "patientId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListBillResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bills/appointment/{appointmentId}" : {
+      "get" : {
+        "tags" : [ "Billing" ],
+        "summary" : "Bill for an appointment",
+        "description" : "Doctor, receptionist, admin.",
+        "operationId" : "getBillByAppointment",
+        "parameters" : [ {
+          "name" : "appointmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseBillResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me" : {
+      "get" : {
+        "tags" : [ "Authentication" ],
+        "summary" : "Current user",
+        "description" : "Any signed-in user. Use at app start to validate a stored token (401 = sign in again).",
+        "operationId" : "me",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseUserResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/{id}" : {
+      "get" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "One appointment",
+        "description" : "Receptionist, admin, the appointment's doctor, or its patient.",
+        "operationId" : "getById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/today" : {
+      "get" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "Today's appointments (all doctors)",
+        "description" : "Receptionist, admin. 'Today' is the clinic's date.",
+        "operationId" : "getTodayAppointments",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/patient/{patientId}" : {
+      "get" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "A patient's appointments",
+        "description" : "Staff, or the patient themself. Prefer `/api/patients/me/appointments` in patient apps.",
+        "operationId" : "getByPatient",
+        "parameters" : [ {
+          "name" : "patientId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/doctor/{doctorId}" : {
+      "get" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "A doctor's appointments",
+        "description" : "Receptionist, admin, or that doctor (`doctorId` is the doctor's user id).",
+        "operationId" : "getByDoctor",
+        "parameters" : [ {
+          "name" : "doctorId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/doctor/{doctorId}/today" : {
+      "get" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "A doctor's appointments today",
+        "description" : "Receptionist, admin, or that doctor.",
+        "operationId" : "getTodayByDoctor",
+        "parameters" : [ {
+          "name" : "doctorId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/role/{role}" : {
+      "get" : {
+        "tags" : [ "Administration" ],
+        "summary" : "Users by role",
+        "description" : "Admin. Not paged.",
+        "operationId" : "getUsersByRole",
+        "parameters" : [ {
+          "name" : "role",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListUserResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "UpdatePrescriptionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "dossage" : {
+            "type" : "string",
+            "example" : "1 capsule",
+            "minLength" : 1
+          },
+          "duration" : {
+            "type" : "string",
+            "example" : "twice a day for 7 days",
+            "minLength" : 1
+          },
+          "notes" : {
+            "type" : "string",
+            "example" : "Take after meals"
+          }
+        },
+        "required" : [ "dossage", "duration" ]
+      },
+      "ApiResponsePrescriptionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/PrescriptionResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "PrescriptionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "appointmentId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "doctorId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "drugId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "dossage" : {
+            "type" : "string"
+          },
+          "duration" : {
+            "type" : "string"
+          },
+          "notes" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdOn" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "billId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "chargeAmount" : {
+            "type" : "number"
+          },
+          "drugName" : {
+            "type" : "string"
+          },
+          "drugMilligrams" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "prescribedByFirstName" : {
+            "type" : "string"
+          },
+          "prescribedByLastName" : {
+            "type" : "string"
+          },
+          "appointmentDateTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CreateUserRequest" : {
+        "type" : "object",
+        "properties" : {
+          "username" : {
+            "type" : "string",
+            "maxLength" : 50,
+            "minLength" : 3
+          },
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "minLength" : 1
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 2147483647,
+            "minLength" : 6
+          },
+          "firstName" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "lastName" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "role" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "email", "firstName", "lastName", "password", "role", "username" ]
+      },
+      "ApiResponseUserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/UserResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "UserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "role" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CreatePrescriptionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "appointmentId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 31
+          },
+          "drugId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 7
+          },
+          "dossage" : {
+            "type" : "string",
+            "example" : "1 capsule",
+            "minLength" : 1
+          },
+          "duration" : {
+            "type" : "string",
+            "example" : "3 times a day for 5 days",
+            "minLength" : 1
+          },
+          "notes" : {
+            "type" : "string",
+            "example" : "Take after meals"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 15,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "appointmentId", "dossage", "drugId", "duration", "quantity" ]
+      },
+      "RegisterPatientRequest" : {
+        "type" : "object",
+        "properties" : {
+          "firstName" : {
+            "type" : "string",
+            "example" : "Zawadi",
+            "minLength" : 1
+          },
+          "lastName" : {
+            "type" : "string",
+            "example" : "Njeri",
+            "minLength" : 1
+          },
+          "email" : {
+            "type" : "string",
+            "format" : "email",
+            "example" : "zawadi.njeri@example.test",
+            "minLength" : 1
+          },
+          "phoneNumber" : {
+            "type" : "string",
+            "example" : "0700100200",
+            "minLength" : 1
+          },
+          "dateOfBirth" : {
+            "type" : "string",
+            "example" : "1990-04-12",
+            "minLength" : 1
+          },
+          "gender" : {
+            "type" : "string",
+            "example" : "FEMALE"
+          },
+          "address" : {
+            "type" : "string",
+            "example" : "Westlands, Nairobi",
+            "minLength" : 1
+          },
+          "emergencyContactName" : {
+            "type" : "string",
+            "example" : "Baraka Njeri"
+          },
+          "emergencyContactPhone" : {
+            "type" : "string",
+            "example" : "0700300400"
+          },
+          "allergies" : {
+            "type" : "string",
+            "example" : "Penicillin"
+          }
+        },
+        "required" : [ "address", "dateOfBirth", "email", "firstName", "gender", "lastName", "phoneNumber" ]
+      },
+      "ApiResponsePatientResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/PatientResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "PatientResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "userId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "phoneNumber" : {
+            "type" : "string"
+          },
+          "dateOfBirth" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "gender" : {
+            "type" : "string"
+          },
+          "address" : {
+            "type" : "string"
+          },
+          "emergencyContactName" : {
+            "type" : "string"
+          },
+          "emergencyContactPhone" : {
+            "type" : "string"
+          },
+          "allergies" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "generatedPassword" : {
+            "type" : "string"
+          }
+        }
+      },
+      "CreateBillRequest" : {
+        "type" : "object",
+        "properties" : {
+          "patientId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 12
+          },
+          "appointmentId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 31
+          }
+        },
+        "required" : [ "patientId" ]
+      },
+      "ApiResponseBillResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/BillResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "BillResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "appointmentId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "patientId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "patientFirstName" : {
+            "type" : "string"
+          },
+          "patientLastName" : {
+            "type" : "string"
+          },
+          "patientPhone" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "totalAmount" : {
+            "type" : "number"
+          },
+          "amountPaid" : {
+            "type" : "number"
+          },
+          "balance" : {
+            "type" : "number"
+          },
+          "lineItems" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LineItemResponse"
+            }
+          },
+          "payments" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PaymentResponse"
+            }
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "LineItemResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "unitPrice" : {
+            "type" : "number"
+          },
+          "totalPrice" : {
+            "type" : "number"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "sourceReferenceId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "PaymentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "amount" : {
+            "type" : "number"
+          },
+          "method" : {
+            "type" : "string"
+          },
+          "reference" : {
+            "type" : "string"
+          },
+          "recordedByUserId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "paidAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "RecordPaymentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "amount" : {
+            "type" : "number",
+            "example" : "500.00",
+            "minimum" : 0.01
+          },
+          "method" : {
+            "type" : "string",
+            "enum" : [ "CASH", "MPESA", "CARD", "INSURANCE" ],
+            "example" : "MPESA"
+          },
+          "reference" : {
+            "type" : "string",
+            "example" : "SHK7Y2M4XR"
+          }
+        },
+        "required" : [ "amount", "method" ]
+      },
+      "AddLineItemRequest" : {
+        "type" : "object",
+        "properties" : {
+          "description" : {
+            "type" : "string",
+            "example" : "Lab test - blood",
+            "minLength" : 1
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 1,
+            "minimum" : 1
+          },
+          "unitPrice" : {
+            "type" : "number",
+            "example" : "1500.00",
+            "minimum" : 0.01
+          },
+          "source" : {
+            "type" : "string",
+            "enum" : [ "CONSULTATION", "DRUG_DISPENSE", "LAB", "MANUAL" ],
+            "example" : "LAB"
+          },
+          "sourceReferenceId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 9001
+          }
+        },
+        "required" : [ "description", "quantity", "source", "unitPrice" ]
+      },
+      "LoginRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "example" : "zawadi.njeri@example.test",
+            "minLength" : 1
+          },
+          "password" : {
+            "type" : "string",
+            "example" : "Example#Pass2026",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "email", "password" ]
+      },
+      "ApiResponseAuthResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/AuthResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AuthResponse" : {
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "role" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ChangePasswordRequest" : {
+        "type" : "object",
+        "properties" : {
+          "currentPassword" : {
+            "type" : "string",
+            "example" : "Example#Pass2026",
+            "minLength" : 1
+          },
+          "newPassword" : {
+            "type" : "string",
+            "example" : "A-new-Example#2026",
+            "maxLength" : 128,
+            "minLength" : 8
+          }
+        },
+        "required" : [ "currentPassword", "newPassword" ]
+      },
+      "ApiResponseVoid" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : { },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "BookAppointmentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "patientId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 12
+          },
+          "doctorId" : {
+            "type" : "integer",
+            "format" : "int64",
+            "example" : 4
+          },
+          "appointmentDateTime" : {
+            "type" : "string",
+            "example" : "2026-11-03T09:30:00",
+            "minLength" : 1
+          },
+          "reason" : {
+            "type" : "string",
+            "example" : "Persistent cough"
+          }
+        },
+        "required" : [ "appointmentDateTime", "doctorId", "patientId" ]
+      },
+      "ApiResponseAppointmentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/AppointmentResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AppointmentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "patientId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "patientFirstName" : {
+            "type" : "string"
+          },
+          "patientLastName" : {
+            "type" : "string"
+          },
+          "patientEmail" : {
+            "type" : "string"
+          },
+          "patientPhone" : {
+            "type" : "string"
+          },
+          "doctorId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "doctorFirstName" : {
+            "type" : "string"
+          },
+          "doctorLastName" : {
+            "type" : "string"
+          },
+          "appointmentDateTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "appointmentStatus" : {
+            "type" : "string"
+          },
+          "notes" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "UpdateAppointmentStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "example" : "WAITING",
+            "minLength" : 1
+          },
+          "notes" : {
+            "type" : "string",
+            "example" : "Checked in at reception"
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "ApiResponseListUserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/UserResponse"
+            }
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseListPrescriptionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PrescriptionResponse"
+            }
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "Pageable" : {
+        "type" : "object",
+        "properties" : {
+          "page" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 0
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          },
+          "sort" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "ApiResponsePagedResponsePatientResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/PagedResponsePatientResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "PagedResponsePatientResponse" : {
+        "type" : "object",
+        "properties" : {
+          "content" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PatientResponse"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "last" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ApiResponseListPatientResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PatientResponse"
+            }
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseListBillResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BillResponse"
+            }
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseListAppointmentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AppointmentResponse"
+            }
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseListDrugResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DrugResponse"
+            }
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "DrugResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "manufacturerId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "milligrams" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "category" : {
+            "type" : "string"
+          },
+          "cost" : {
+            "type" : "number"
+          },
+          "quantity" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ApiResponseDrugResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/DrugResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponsePagedResponseBillResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/PagedResponseBillResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "PagedResponseBillResponse" : {
+        "type" : "object",
+        "properties" : {
+          "content" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BillResponse"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "last" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ApiResponsePagedResponseUserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/PagedResponseUserResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "PagedResponseUserResponse" : {
+        "type" : "object",
+        "properties" : {
+          "content" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/UserResponse"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "last" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ErrorResponse" : {
+        "type" : "object",
+        "description" : "Error envelope returned with every 4xx/5xx response",
+        "properties" : {
+          "success" : {
+            "type" : "boolean",
+            "example" : false
+          },
+          "code" : {
+            "type" : "string",
+            "description" : "Stable machine-readable error code. New codes may be added; unknown codes should be handled by HTTP status.",
+            "enum" : [ "ADMIN_SELF_CHANGE", "ALREADY_PRESCRIBED", "APPOINTMENT_NOT_ACTIVE", "BAD_REQUEST", "BILL_CANCELLED", "BILL_HAS_PAYMENTS", "CONCURRENT_UPDATE", "CONFLICT", "DRUG_NOT_PRICED", "DUPLICATE_ACCOUNT", "DUPLICATE_PAYMENT_REFERENCE", "FORBIDDEN", "INSUFFICIENT_STOCK", "INTERNAL_ERROR", "INVALID_CREDENTIALS", "INVALID_CURRENT_PASSWORD", "INVALID_STATE_TRANSITION", "MALFORMED_REQUEST", "METHOD_NOT_ALLOWED", "NOT_FOUND", "SLOT_UNAVAILABLE", "UNAUTHENTICATED", "UNSUPPORTED_MEDIA_TYPE", "VALIDATION_FAILED" ],
+            "example" : "INSUFFICIENT_STOCK"
+          },
+          "message" : {
+            "type" : "string",
+            "description" : "Safe, human-readable; may change",
+            "example" : "Insufficient stock for Amoxicillin: only 2 remaining, 5 requested"
+          },
+          "requestId" : {
+            "type" : "string",
+            "description" : "Correlation id, same as the X-Request-Id header",
+            "example" : "7c1e0f4a-2b9d-4c55-9a51-3f0b8e6d2a10"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            },
+            "description" : "Field -> message, only for VALIDATION_FAILED",
+            "example" : {
+              "email" : "Please provide a valid email address"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "success", "code", "message" ]
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "type" : "http",
+        "description" : "Token from POST /api/auth/login",
+        "scheme" : "bearer",
+        "bearerFormat" : "JWT"
+      }
+    }
+  }
+}
