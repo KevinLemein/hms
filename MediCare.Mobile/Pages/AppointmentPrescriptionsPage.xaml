@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:pageModels="clr-namespace:MediCare.Mobile.PageModels"
+             xmlns:models="clr-namespace:MediCare.Mobile.Models"
+             x:Class="MediCare.Mobile.Pages.AppointmentPrescriptionsPage"
+             x:DataType="pageModels:AppointmentPrescriptionsPageModel"
+             Title="Prescriptions">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource LayoutPadding}" Spacing="12">
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            <Label Text="{Binding Header}" Style="{StaticResource Body1Strong}" />
+
+            <VerticalStackLayout Spacing="10" BindableLayout.ItemsSource="{Binding Prescriptions}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:PrescriptionVm">
+                        <Border Style="{StaticResource CardStyle}">
+                            <VerticalStackLayout Spacing="6">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="{Binding DrugTitle}" Style="{StaticResource Body1Strong}" />
+                                    <Label Grid.Column="1" Text="{Binding DateText}" Style="{StaticResource Caption1}"
+                                           VerticalOptions="Center" />
+                                </Grid>
+                                <Label Text="{Binding Dossage, StringFormat='Dose: {0}'}" Style="{StaticResource Body2}" />
+                                <Label Text="{Binding Duration, StringFormat='Duration: {0}'}" Style="{StaticResource Body2}" />
+                                <Label Text="{Binding QuantityText}" Style="{StaticResource Body2}" />
+                                <Label Text="{Binding Notes, StringFormat='Notes: {0}'}" Style="{StaticResource Caption1}"
+                                       IsVisible="{Binding HasNotes}" />
+                                <Label Text="{Binding DoctorName, StringFormat='Prescribed by {0}'}"
+                                       Style="{StaticResource Caption1}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

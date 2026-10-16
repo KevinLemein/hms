@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:pageModels="clr-namespace:MediCare.Mobile.PageModels"
+             xmlns:dg="clr-namespace:Maui.DataGrid;assembly=Maui.DataGrid"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="MediCare.Mobile.Pages.AppointmentsPage"
+             x:DataType="pageModels:AppointmentsPageModel"
+             x:Name="AppointmentsRoot"
+             Title="My Appointments">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior
+                BindingContext="{Binding Path=BindingContext, Source={x:Reference AppointmentsRoot}, x:DataType=ContentPage}"
+                EventName="Appearing"
+                Command="{Binding AppearingCommand}" />
+    </ContentPage.Behaviors>
+
+    <ContentPage.Resources>
+        <DataTemplate x:Key="LeftCell" x:DataType="x:String">
+            <Label Text="{Binding}" TextColor="Black" Padding="10,0"
+                   VerticalOptions="Center" HorizontalTextAlignment="Start"
+                   LineBreakMode="TailTruncation" MaxLines="2" />
+        </DataTemplate>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="{StaticResource LayoutPadding}" RowSpacing="10">
+        <ActivityIndicator Grid.Row="0" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+        <Label Grid.Row="1" Text="Select an appointment to view details." Style="{StaticResource Caption1}" />
+
+        <dg:DataGrid Grid.Row="2"
+                     x:Name="AppointmentsGrid"
+                     ItemsSource="{Binding Appointments}"
+                     SelectionMode="Single"
+                     ItemSelected="OnItemSelected"        
+                     RowHeight="48"
+                     HeaderHeight="48"
+           
+                     BorderColor="#D0D0D0"
+                     HeaderBackground="{StaticResource Secondary}">
+
+            <dg:DataGrid.HeaderLabelStyle>
+                <Style TargetType="Label">
+                    <Setter Property="TextColor" Value="White" />
+                    <Setter Property="FontAttributes" Value="Bold" />
+                    <Setter Property="HorizontalTextAlignment" Value="Start" />
+                    <Setter Property="Padding" Value="10,0" />
+                </Style>
+            </dg:DataGrid.HeaderLabelStyle>
+
+            <dg:DataGrid.Columns>
+                <dg:DataGridColumn Title="Date" PropertyName="DateText" Width="1.4*"
+                                   CellTemplate="{StaticResource LeftCell}" />
+                <dg:DataGridColumn Title="Time" PropertyName="TimeText" Width="0.7*"
+                                   CellTemplate="{StaticResource LeftCell}" />
+                <dg:DataGridColumn Title="Doctor" PropertyName="DoctorName" Width="1.3*"
+                                   CellTemplate="{StaticResource LeftCell}" />
+                <dg:DataGridColumn Title="Status" PropertyName="StatusText" Width="1.1*"
+                                   CellTemplate="{StaticResource LeftCell}" />
+            </dg:DataGrid.Columns>
+
+            <dg:DataGrid.RowsBackgroundColorPalette>
+                <dg:PaletteCollection>
+                    <Color>#E7E7E7</Color>
+                    <Color>#FFFFFF</Color>
+                </dg:PaletteCollection>
+            </dg:DataGrid.RowsBackgroundColorPalette>
+
+            <dg:DataGrid.NoDataView>
+                <Label Text="No appointments yet." Padding="10,20" HorizontalOptions="Start" TextColor="Black" />
+            </dg:DataGrid.NoDataView>
+        </dg:DataGrid>
+
+        <Button Grid.Row="3" Text="Book Appointment" Command="{Binding BookCommand}"
+                CornerRadius="20" Margin="0,10,0,0" />
+    </Grid>
+</ContentPage>

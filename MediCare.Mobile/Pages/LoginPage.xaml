@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MediCare.Mobile.Pages.LoginPage"
+              NavigationPage.HasNavigationBar="False"
+			 xmlns:convertors="clr-namespace:MediCare.Mobile.Convertors;assembly=MediCare.Mobile"
+			  BackgroundColor="{StaticResource BackColor}"
+             Title="Login Page">
+	<ContentPage.Resources>
+		<ResourceDictionary>
+			<convertors:BooleanConvertor x:Key="BooleanConvertor" />
+		</ResourceDictionary>
+	</ContentPage.Resources>
+	<ContentPage.Content>
+
+            <Grid x:Name="LoginForm" RowDefinitions="Auto,*">
+                <StackLayout Padding="20,40">
+                <Image HorizontalOptions="Center" WidthRequest="150" Source="logo" />
+            </StackLayout>
+                <Border Grid.Row="1" Stroke="#FFF" VerticalOptions="Fill" StrokeThickness="1" Margin="-3,0"
+                  StrokeShape="RoundRectangle 20,20,0,0" Background="#FFF" Padding="16,8" HorizontalOptions="Fill">
+                    <StackLayout Padding="15" VerticalOptions="Fill"  >
+                        <Label TextColor="#000" Text="Email"></Label>
+                    <Entry x:Name="UserNameId" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" Keyboard="Email" TextColor="Black" Text="{Binding Email}"  />
+
+                        <Label Margin="0,10,0,0" TextColor="#000" Text="Password"></Label>
+                        <Entry  x:Name="Pin"  IsPassword="True" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False" TextColor="Black" Text="{Binding Password}" />
+
+                        <Button  IsVisible="{Binding IsBusy, Converter={StaticResource BooleanConvertor}}" Command="{Binding LoginCommand}" CornerRadius="20" Margin="20" Text="Login" />
+
+						<StackLayout VerticalOptions="Start" IsVisible="{Binding IsBusy}" Margin="10">
+							<ActivityIndicator IsRunning="{Binding IsBusy}" />
+							<Label TextColor="#FC7E27" FontAttributes="None" Text="loading..." HorizontalOptions="Center" />
+						</StackLayout>
+                        <StackLayout HorizontalOptions="Center"  Orientation="Horizontal"  VerticalOptions="End">
+              
+                            <Label Margin="10"  HorizontalTextAlignment="Center" Text="{Binding AppVersion}" />
+                        </StackLayout>
+                    </StackLayout>
+
+                </Border>
+
+            </Grid>
+
+	</ContentPage.Content>
+
+</ContentPage>
