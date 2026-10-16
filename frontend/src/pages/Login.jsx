@@ -39,9 +39,15 @@ export default function Login() {
             }
         } catch (err) {
             // 401 here means wrong credentials, not an expired session.
-            setError(err.response?.status === 401
+            // Sign-in is public, so a 403 is never a user-permission problem:
+            // it means the server refused the request itself (e.g. a proxy or
+            // CORS misconfiguration), and "you don't have permission" would mislead.
+            const status = err.response?.status;
+            setError(status === 401
                 ? "Incorrect email or password."
-                : getErrorMessage(err, "Sign-in failed. Please try again."));
+                : status === 403
+                    ? "The server refused the sign-in request. Please try again, and contact your administrator if it keeps happening."
+                    : getErrorMessage(err, "Sign-in failed. Please try again."));
         } finally {
             setLoading(false);
         }

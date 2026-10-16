@@ -74,3 +74,25 @@
   - `AuthController` (`/me`), `AuthService` / `JwtService` / `AuthResponse` (`expiresAt`), `UserService` (`getUser`), `UserResponse` (no password field);
   - all 8 controllers (`@Tag` / `@Operation` only), 10 request DTOs (`@Schema` examples only);
   - `application.properties`, `application-docker.properties`, `frontend/e2e/README.md`.
+
+## 6. Post-phase fix (2026-10-16): browser sign-in refused behind nginx
+**Symptom:** signing in from the web app (`docker compose`, http://localhost:3000) showed
+"You don't have permission to do that" for every account.
+
+**Cause (a regression from §2.2):**
+- nginx forwarded `Host: localhost` (port dropped) and no forwarded port, so Spring saw the page's own origin `http://localhost:3000` as a different origin and applied CORS.
+- §2.2 had changed the production profile's allowed origins from a hard-coded `localhost:3000` to "none", so Spring rejected the login with 403 "Invalid CORS request".
+- Clients without an `Origin` header (curl, mobile) were unaffected, which is why the backend tests and live curl checks passed.
+
+**Fix:**
+- `frontend/nginx.conf` forwards `Host: $http_host`, `X-Forwarded-Host`, and `X-Forwarded-Port` (taken from the browser's Host header).
+- The docker profile uses `server.forward-headers-strategy=native` (Tomcat trusts these headers only from private-network proxies such as the nginx container) and defaults `CORS_ALLOWED_ORIGINS` to `http://localhost:3000`.
+- The login page no longer shows "permission" wording for a refused sign-in.
+
+**Verified:**
+- Reproduced first (403 "Invalid CORS request").
+- Then, through a real nginx container running the repository config: same-origin login on a port **not** in the allow-list returned 200; a foreign origin still returned 403; requests without `Origin` returned 200.
+- A real browser on http://localhost:3000 signed in as admin and reached User management (login and user list both 200).
+- Backend suite 107/107; frontend build OK, lint unchanged.
+
+**Deployment note:** rebuild **both** images (`docker compose up --build`). Under a real domain, set `CORS_ALLOWED_ORIGINS=https://<site>`. If TLS is terminated before nginx, also forward the original scheme.
