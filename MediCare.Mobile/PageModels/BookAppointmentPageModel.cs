@@ -167,7 +167,6 @@ namespace MediCare.Mobile.PageModels
                 {
                     await _patients.BookAppointmentAsync(new BookAppointmentVm
                     {
-                        PatientId = App.Member?.Id ?? 0,
                         DoctorId = SelectedDoctor.Id,
                         AppointmentDateTime = when,
                         Reason = Reason?.Trim()

@@ -43,6 +43,8 @@ namespace MediCare.Mobile
             await toast.Show(cts.Token);
         }
 
+        private void OnSignOutClicked(object? sender, EventArgs e) => App.ShowLogin();
+
         private void SfSegmentedControl_SelectionChanged(object? sender, Syncfusion.Maui.Toolkit.SegmentedControl.SelectionChangedEventArgs e)
         {
             Application.Current!.UserAppTheme = e.NewIndex == 0 ? AppTheme.Light : AppTheme.Dark;

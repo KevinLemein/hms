@@ -42,8 +42,16 @@ All client-facing endpoints of the Spring Boot service (the only supported API; 
 ## Appointments
 | Method | Path | Who | Purpose | Notable responses | Verified |
 |---|---|---|---|---|---|
-| POST | `/appointments` | R | Book (also creates the bill + consultation fee) | 409 `SLOT_UNAVAILABLE`; 400 past time or bad date; 400 doctor disabled / not a doctor | IT, E2E |
-| PATCH | `/appointments/{id}/status` | R, A: any allowed; D: own, to `IN_CONSULTATION`/`COMPLETED` | Change status `{ status, notes? }` | 409 `INVALID_STATE_TRANSITION`; 403 other doctor's; 400 unknown status | IT, E2E |
+| POST | `/appointments` | R (any patient, `patientId` required); P (self, `patientId` omitted) | Book (also creates the bill + consultation fee) | 409 `SLOT_UNAVAILABLE` (taken, outside the doctor's hours, or on time off); 400 past time or bad date; 400 doctor disabled / not a doctor; 403 patient booking for someone else | IT |
+| PUT | `/appointments/{id}` | R, A; P own | Reschedule `{ appointmentDateTime, reason? }` (PENDING/WAITING only; same doctor) | 409 `SLOT_UNAVAILABLE`; 409 `INVALID_STATE_TRANSITION`; 400 past time; 403 | IT |
+| GET | `/appointments/doctors` | any signed-in | Enabled doctors for booking (`id` = user id) | — | IT |
+| GET | `/appointments/doctor/{doctorUserId}/slots?date=&ignoreAppointmentId=` | any signed-in | Free start times (`HH:mm`) from the doctor's hours, minus taken and past times | — | IT |
+| GET | `/appointments/doctor/{doctorUserId}/schedule` | R, A; D own | Weekly working hours; `custom=false` = clinic default hours | 403 another doctor | IT |
+| PUT | `/appointments/doctor/{doctorUserId}/schedule` | R, A; D own | Replace the weekly schedule `{ blocks: [{ dayOfWeek 1-7, startTime, endTime, slotMinutes }] }`; `[]` restores the default | 400 overlap / end before start / bad time | IT |
+| GET | `/appointments/doctor/{doctorUserId}/time-off` | R, A; D own | Upcoming time off | 403 | IT |
+| POST | `/appointments/doctor/{doctorUserId}/time-off` | R, A; D own | Add time off `{ startDate, endDate, reason? }` (whole days, inclusive) | 400 end before start / all in the past | IT |
+| DELETE | `/appointments/doctor/{doctorUserId}/time-off/{id}` | R, A; D own | Remove time off | 404; 403 | IT |
+| PATCH | `/appointments/{id}/status` | R, A: any allowed; D: own, to `IN_CONSULTATION`/`COMPLETED`; P: own, to `CANCELLED` | Change status `{ status, notes? }` | 409 `INVALID_STATE_TRANSITION`; 403 other doctor's / other patient's; 400 unknown status | IT, E2E |
 | GET | `/appointments` | R, A | All appointments (not paged) | — | E2E |
 | GET | `/appointments/today` | R, A | Today (clinic date), all doctors | — | IT |
 | GET | `/appointments/{id}` | R, A; D own; P own | One appointment | 403 | IT |

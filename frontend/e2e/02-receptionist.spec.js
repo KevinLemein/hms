@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { expectToast, fixtures, localDateTime, signIn } from "./helpers.js";
+import { expectToast, fixtures, isoDate, localDateTime, signIn } from "./helpers.js";
 
 test.describe.configure({ mode: "serial" });
 
@@ -33,25 +33,28 @@ test.describe("Receptionist", () => {
         await page.getByRole("button", { name: "Book appointment" }).click();
         await expect(page.getByText("Select a patient.")).toBeVisible();
         await expect(page.getByText("Select a doctor.")).toBeVisible();
-        await expect(page.getByText("Choose a date and time.")).toBeVisible();
+        await expect(page.getByText("Choose a date.")).toBeVisible();
     });
 
-    test("books an appointment and gets a clear conflict for a taken slot", async ({ page }) => {
-        const slot = localDateTime(1, 10);
-        const book = async (search, name) => {
+    test("books an appointment and no longer offers the taken slot", async ({ page }) => {
+        const day = isoDate(1);
+        const pick = async (search, name) => {
             await page.getByRole("tab", { name: "Book appointment" }).click();
             await page.getByRole("combobox", { name: /Patient/ }).fill(search);
             await page.getByRole("option", { name: new RegExp(name) }).click();
             await page.getByLabel("Doctor").selectOption({ label: "Dr. Amani Kamau" });
-            await page.getByLabel("Date and time").fill(slot);
-            await page.getByRole("button", { name: "Book appointment" }).click();
+            await page.getByLabel("Date", { exact: true }).fill(day);
         };
 
-        await book("Jabari", "Jabari Ochieng");
+        await pick("Jabari", "Jabari Ochieng");
+        await page.getByText("10:00", { exact: true }).click();
+        await page.getByRole("button", { name: "Book appointment" }).click();
         await expectToast(page, "Appointment booked for Jabari Ochieng");
 
-        await book("Zawadi", "Zawadi Njeri");
-        await expect(page.getByRole("alert").filter({ hasText: "already has an appointment at this time" })).toBeVisible();
+        // The slot is now taken, so the free-times list for that day leaves it out.
+        await pick("Zawadi", "Zawadi Njeri");
+        await expect(page.getByText("09:30", { exact: true })).toBeVisible();
+        await expect(page.getByText("10:00", { exact: true })).toHaveCount(0);
     });
 
     test("checks a patient in, and cancelling asks for confirmation", async ({ page }) => {

@@ -25,6 +25,9 @@ public enum AppointmentStatus {
     /** Transitions a doctor may perform (on their own appointments only). */
     public static final Set<AppointmentStatus> DOCTOR_TARGETS = EnumSet.of(IN_CONSULTATION, COMPLETED);
 
+    /** Transitions a patient may perform (on their own appointments only). */
+    public static final Set<AppointmentStatus> PATIENT_TARGETS = EnumSet.of(CANCELLED);
+
     public boolean canTransitionTo(AppointmentStatus next) {
         return switch (this) {
             case PENDING -> next == WAITING || next == CANCELLED || next == NO_SHOW;

@@ -26,6 +26,11 @@ export function localDateTime(daysAhead, hour) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(hour)}:00`;
 }
 
+/** "yyyy-MM-dd" for <input type="date">, days from today. */
+export function isoDate(daysAhead) {
+    return localDateTime(daysAhead, 0).slice(0, 10);
+}
+
 export async function expectToast(page, text) {
     await expect(page.getByRole("status").filter({ hasText: text }).or(page.getByRole("alert").filter({ hasText: text })).first()).toBeVisible();
 }

@@ -26,6 +26,16 @@
         ContentTemplate="{DataTemplate pages:PrescriptionsPage}"
         Route="prescriptions" />
 
+    <ShellContent
+        Title="Payments"
+        Icon="{StaticResource IconPayments}"
+        ContentTemplate="{DataTemplate pages:PaymentHistoryPage}"
+        Route="payments" />
+
+    <MenuItem Text="Sign out"
+              IconImageSource="{StaticResource IconSignOut}"
+              Clicked="OnSignOutClicked" />
+
     <Shell.FlyoutFooter>
         <Grid Padding="15">
             <sf:SfSegmentedControl x:Name="ThemeSegmentedControl" 

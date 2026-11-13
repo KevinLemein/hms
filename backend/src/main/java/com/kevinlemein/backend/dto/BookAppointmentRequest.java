@@ -15,8 +15,7 @@ import lombok.AllArgsConstructor;
 
 public class BookAppointmentRequest {
 
-    @NotNull(message = "Patient ID is required")
-    @Schema(example = "12")
+    @Schema(example = "12", description = "Required for receptionists. Patients book for themselves: omit it, or send their own patient id.")
     private Long patientId;
 
     @NotNull(message = "Doctor ID is required")

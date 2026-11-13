@@ -1,0 +1,2 @@
+
+$env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User"); $env:DB_URL = "jdbc:postgresql://102.218.215.79:5432/medicare"; $env:DB_USERNAME = "postgres"; $env:DB_PASSWORD = "@Admin890"; $env:JWT_SECRET = [Convert]::ToBase64String((1..64 | ForEach-Object { Get-Random -Maximum 256 }) -as [byte[]]); $env:JWT_EXPIRATION = "3600000"; $env:API_DOCS_ENABLED = "true"; .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=docker"

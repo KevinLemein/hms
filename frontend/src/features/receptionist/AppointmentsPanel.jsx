@@ -11,9 +11,13 @@ import { SkeletonRows } from "../../components/ui/Spinner";
 import { FilterGroup } from "../../components/ui/Tabs";
 import Button from "../../components/ui/Button";
 import AppointmentActions from "../appointments/AppointmentActions";
+import RescheduleDialog from "../appointments/RescheduleDialog";
+import { useToast } from "../../context/ToastContext";
 import useStatusChange, { FRONT_DESK_ACTIONS } from "../appointments/useStatusChange";
 
 export default function AppointmentsPanel({ onChanged }) {
+    const { showSuccess } = useToast();
+    const [rescheduling, setRescheduling] = useState(null);
     const [range, setRange] = useState("today");
     const load = useCallback(
         () => (range === "today" ? appointmentService.getToday() : appointmentService.getAll())
@@ -74,12 +78,33 @@ export default function AppointmentsPanel({ onChanged }) {
                         {
                             key: "actions",
                             header: "Actions",
-                            render: (a) => <AppointmentActions appointment={a} actions={FRONT_DESK_ACTIONS} pendingId={pendingId} onAction={request} />,
+                            render: (a) => (
+                                <AppointmentActions appointment={a} actions={FRONT_DESK_ACTIONS} pendingId={pendingId} onAction={request}>
+                                    {(a.appointmentStatus === "PENDING" || a.appointmentStatus === "WAITING") && (
+                                        <Button size="sm" variant="secondary" onClick={() => setRescheduling(a)}
+                                                aria-label={`Reschedule: ${fullName(a.patientFirstName, a.patientLastName)}`}>
+                                            Reschedule
+                                        </Button>
+                                    )}
+                                </AppointmentActions>
+                            ),
                         },
                     ]}
                 />
             )}
             {dialog}
+            {rescheduling && (
+                <RescheduleDialog
+                    appointment={rescheduling}
+                    onClose={() => setRescheduling(null)}
+                    onSaved={(updated) => {
+                        setData((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+                        setRescheduling(null);
+                        showSuccess("Appointment rescheduled");
+                        onChanged?.();
+                    }}
+                />
+            )}
         </Card>
     );
 }

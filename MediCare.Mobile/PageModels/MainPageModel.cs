@@ -6,9 +6,7 @@ namespace MediCare.Mobile.PageModels
 {
     public partial class MainPageModel : ObservableObject
     {
-        private bool _dataLoaded;
         private readonly ModalErrorHandler _errorHandler;
-        private readonly SeedDataService _seedDataService;
 
         [ObservableProperty]
         private Member _member = new();
@@ -16,38 +14,16 @@ namespace MediCare.Mobile.PageModels
         [ObservableProperty]
         private string _today = DateTime.Now.ToString("dddd, MMM d");
 
-        public MainPageModel(SeedDataService seedDataService, ModalErrorHandler errorHandler)
+        public MainPageModel(ModalErrorHandler errorHandler)
         {
-            _seedDataService = seedDataService;
             _errorHandler = errorHandler;
         }
 
+        // Always re-read: this model is a singleton and a different patient may have signed in.
         [RelayCommand]
-        private async Task Appearing()
+        private void Appearing()
         {
-            if (_dataLoaded)
-                return;
-
-            try
-            {
-                if (!Preferences.Default.ContainsKey("is_seeded"))
-                {
-                    await _seedDataService.LoadSeedDataAsync();
-                    Preferences.Default.Set("is_seeded", true);
-                }
-
-                if (App.Member != null)
-                {
-                    Member = App.Member;
-
-                    _dataLoaded = true;
-                }
-               
-            }
-            catch (Exception e)
-            {
-                _errorHandler.HandleError(e);
-            }
+            Member = App.Member ?? new Member();
         }
 
         [RelayCommand]

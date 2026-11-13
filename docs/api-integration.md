@@ -11,13 +11,13 @@ MediCare is a clinic system. For **patients** the API supports:
 - signing in;
 - viewing their profile;
 - viewing their appointments;
+- booking, rescheduling and cancelling their own appointments (`GET /api/appointments/doctors`, `GET /api/appointments/doctor/{id}/slots`, `POST /api/appointments`, `PUT /api/appointments/{id}`, `PATCH /api/appointments/{id}/status` with `CANCELLED`);
 - viewing their prescriptions;
 - viewing their bills and payments;
 - changing their password.
 
 **Not available** (no endpoints exist, so don't build screens for them):
 - self-registration (patients are registered at reception, which issues a temporary password);
-- booking, cancelling or rescheduling appointments (done by reception);
 - a physician directory, search or profiles;
 - consultations or messaging;
 - notifications or push;
@@ -152,7 +152,7 @@ response.
 | `CANCELLED` | Cancelled |
 | `NO_SHOW` | Missed |
 
-"Upcoming" = `PENDING` or `WAITING`. Patients can't change appointments.
+"Upcoming" = `PENDING` or `WAITING`. Patients can reschedule those, and cancel them (`PATCH /api/appointments/{id}/status` with `{"status":"CANCELLED"}`); every other change is front-desk or doctor only.
 
 ### 7.3 Prescriptions
 `GET /api/patients/me/prescriptions` returns a list of:

@@ -1,22 +1,58 @@
 namespace MediCare.Mobile.Models
 {
-    // Shapes mirror the backend's DoctorResponse/AppointmentResponse/PrescriptionResponse.
+    // Shapes mirror the backend's DoctorResponse/AppointmentResponse/PrescriptionResponse/BillResponse.
     public class DoctorVm
     {
         public long Id { get; set; }
         public string FirstName { get; set; } = "";
         public string LastName { get; set; } = "";
-        public string Specialty { get; set; } = "";
 
-        public override string ToString() => $"Dr. {FirstName} {LastName} ({Specialty})";
+        public override string ToString() => $"Dr. {FirstName} {LastName}";
     }
 
+    // The patient is resolved from the token, so the request carries no patient id.
     public class BookAppointmentVm
     {
-        public long PatientId { get; set; }
         public long DoctorId { get; set; }
         public DateTime AppointmentDateTime { get; set; }
         public string? Reason { get; set; }
+    }
+
+    // Wire format: the backend takes clinic local time as yyyy-MM-ddTHH:mm:ss, with no zone.
+    public class BookAppointmentRequestVm
+    {
+        public long DoctorId { get; set; }
+        public string AppointmentDateTime { get; set; } = "";
+        public string? Reason { get; set; }
+    }
+
+    public class RescheduleAppointmentRequestVm
+    {
+        public string AppointmentDateTime { get; set; } = "";
+        public string? Reason { get; set; }
+    }
+
+    public class UpdateAppointmentStatusRequestVm
+    {
+        public string Status { get; set; } = "";
+        public string? Notes { get; set; }
+    }
+
+    public class BillVm
+    {
+        public long Id { get; set; }
+        public long? AppointmentId { get; set; }
+        public string Status { get; set; } = "";
+        public List<BillPaymentVm> Payments { get; set; } = new();
+    }
+
+    public class BillPaymentVm
+    {
+        public long Id { get; set; }
+        public decimal Amount { get; set; }
+        public string? Method { get; set; }
+        public string? Reference { get; set; }
+        public DateTime? PaidAt { get; set; }
     }
 
     public class AppointmentVm

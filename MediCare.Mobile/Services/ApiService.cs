@@ -16,14 +16,32 @@ namespace MediCare.Mobile.Services
         [Post("/api/auth/login")]
         Task<Models.ApiResponse<AuthResponseVm>> LoginAsync([Body] LoginVm vm);
 
-        [Get("/api/appointments")]
-        Task<TopUpResponseVm> GetAppointment([Body] TopUpRequestVm vm);
+        [Get("/api/appointments/doctors")]
+        Task<Models.ApiResponse<List<DoctorVm>>> GetDoctorsAsync();
+
+        [Get("/api/appointments/doctor/{doctorId}/slots")]
+        Task<Models.ApiResponse<List<string>>> GetAvailableSlotsAsync(long doctorId, [Query] string date, [Query] long? ignoreAppointmentId);
 
         [Post("/api/appointments")]
-        Task<TopUpResponseVm> PostAppointment([Body] TopUpRequestVm vm);
+        Task<Models.ApiResponse<AppointmentVm>> BookAppointmentAsync([Body] BookAppointmentRequestVm vm);
 
-        [Get("/api/Payments/history")]
-        Task<List<PaymentHistoryItemVm>> GetPaymentHistoryAsync();
+        [Get("/api/appointments/{id}")]
+        Task<Models.ApiResponse<AppointmentVm>> GetAppointmentAsync(long id);
+
+        [Put("/api/appointments/{id}")]
+        Task<Models.ApiResponse<AppointmentVm>> RescheduleAppointmentAsync(long id, [Body] RescheduleAppointmentRequestVm vm);
+
+        [Patch("/api/appointments/{id}/status")]
+        Task<Models.ApiResponse<AppointmentVm>> UpdateAppointmentStatusAsync(long id, [Body] UpdateAppointmentStatusRequestVm vm);
+
+        [Get("/api/patients/me/appointments")]
+        Task<Models.ApiResponse<List<AppointmentVm>>> GetMyAppointmentsAsync();
+
+        [Get("/api/patients/me/prescriptions")]
+        Task<Models.ApiResponse<List<PrescriptionVm>>> GetMyPrescriptionsAsync();
+
+        [Get("/api/patients/me/bills")]
+        Task<Models.ApiResponse<List<BillVm>>> GetMyBillsAsync();
 
     }
 
@@ -48,6 +66,8 @@ namespace MediCare.Mobile.Services
         private readonly IApi _api;
 
         public static string? AccessToken { get; private set; }
+
+        public static void SignOut() => AccessToken = null;
 
         public ApiService(string baseUrl = null)
         {
@@ -84,9 +104,17 @@ namespace MediCare.Mobile.Services
             return response;
         }
 
-        public Task<TopUpResponseVm> GetAppointment(TopUpRequestVm vm) => _api.GetAppointment(vm);
-        public Task<TopUpResponseVm> PostAppointment(TopUpRequestVm vm) => _api.PostAppointment(vm);
-
-        public Task<List<PaymentHistoryItemVm>> GetPaymentHistoryAsync() => _api.GetPaymentHistoryAsync();
+        public Task<Models.ApiResponse<List<DoctorVm>>> GetDoctorsAsync() => _api.GetDoctorsAsync();
+        public Task<Models.ApiResponse<List<string>>> GetAvailableSlotsAsync(long doctorId, string date, long? ignoreAppointmentId)
+            => _api.GetAvailableSlotsAsync(doctorId, date, ignoreAppointmentId);
+        public Task<Models.ApiResponse<AppointmentVm>> BookAppointmentAsync(BookAppointmentRequestVm vm) => _api.BookAppointmentAsync(vm);
+        public Task<Models.ApiResponse<AppointmentVm>> GetAppointmentAsync(long id) => _api.GetAppointmentAsync(id);
+        public Task<Models.ApiResponse<AppointmentVm>> RescheduleAppointmentAsync(long id, RescheduleAppointmentRequestVm vm)
+            => _api.RescheduleAppointmentAsync(id, vm);
+        public Task<Models.ApiResponse<AppointmentVm>> UpdateAppointmentStatusAsync(long id, UpdateAppointmentStatusRequestVm vm)
+            => _api.UpdateAppointmentStatusAsync(id, vm);
+        public Task<Models.ApiResponse<List<AppointmentVm>>> GetMyAppointmentsAsync() => _api.GetMyAppointmentsAsync();
+        public Task<Models.ApiResponse<List<PrescriptionVm>>> GetMyPrescriptionsAsync() => _api.GetMyPrescriptionsAsync();
+        public Task<Models.ApiResponse<List<BillVm>>> GetMyBillsAsync() => _api.GetMyBillsAsync();
     }
 }

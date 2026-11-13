@@ -48,7 +48,7 @@ export default function PatientDashboard() {
             ) : (
                 <Tabs label="Patient sections" tabs={TABS} active={activeTab} onChange={setActiveTab}>
                     {activeTab === "overview" && <PatientOverview patient={data.patient} appointments={data.appointments} />}
-                    {activeTab === "appointments" && <PatientAppointments appointments={data.appointments} />}
+                    {activeTab === "appointments" && <PatientAppointments appointments={data.appointments} onChanged={reload} />}
                     {activeTab === "prescriptions" && <PatientPrescriptions />}
                     {activeTab === "bills" && <PatientBills />}
                 </Tabs>

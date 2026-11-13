@@ -51,24 +51,24 @@ namespace MediCare.Mobile.ViewModels
                 try
                 {
                     IsBusy = true;
-                   // var login = await _api.LoginAsync(vm);
-                   // var user = login.Data;
-                    //App.Member = new Member
-                    //{
-                    //    Id = (int)user.Id,
-                    //    UserId = user.Id.ToString(),
-                    //    FullName = $"{user.FirstName} {user.LastName}".Trim(),
-                    //    IDNo = user.Email
-                    //};
+                    var login = await _api.LoginAsync(vm);
+                    var user = login.Data;
+
+                    // The app is for patients; staff accounts would only hit 403s on every call.
+                    if (user.Role != "ROLE_PATIENT")
+                    {
+                        ApiService.SignOut();
+                        await Application.Current.Windows[0].Page.DisplayAlertAsync("Sorry!", "This app is for patients. Please use a patient account.", "Ok");
+                        return;
+                    }
 
                     App.Member = new Member
                     {
-                        Id = 1,
-                        UserId = "ghghghghghg",
-                        FullName = "Daniel Mburu",
-                        IDNo = "12345"
+                        Id = (int)user.Id,
+                        UserId = user.Id.ToString(),
+                        FullName = $"{user.FirstName} {user.LastName}".Trim(),
+                        IDNo = user.Email
                     };
-                    // App.GoToHome();
                     Application.Current.Windows[0].Page = new AppShell();
 
                 }

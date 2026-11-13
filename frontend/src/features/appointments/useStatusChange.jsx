@@ -23,6 +23,11 @@ export const FRONT_DESK_ACTIONS = {
     IN_CONSULTATION: [{ label: "Complete", next: "COMPLETED", variant: "secondary" }],
 };
 
+export const PATIENT_ACTIONS = {
+    PENDING: [{ label: "Cancel", next: "CANCELLED", variant: "dangerOutline", confirm: true }],
+    WAITING: [{ label: "Cancel", next: "CANCELLED", variant: "dangerOutline", confirm: true }],
+};
+
 export const DOCTOR_ACTIONS = {
     WAITING: [{ label: "Start consultation", next: "IN_CONSULTATION", variant: "primary" }],
     IN_CONSULTATION: [{ label: "Complete visit", next: "COMPLETED", variant: "secondary" }],

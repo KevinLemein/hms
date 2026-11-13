@@ -1,20 +1,23 @@
 import { useState } from "react";
 import appointmentService from "../../api/appointmentService";
 import { getErrorMessage, getFieldErrors } from "../../lib/apiError";
-import { toApiDateTime } from "../../lib/format";
+import { toSlotDateTime } from "../../lib/slots";
 import { Card } from "../../components/ui/Card";
-import { SelectField, TextAreaField, TextField } from "../../components/ui/Field";
+import { SelectField, TextAreaField } from "../../components/ui/Field";
 import Alert from "../../components/ui/Alert";
 import Button from "../../components/ui/Button";
+import SlotPicker from "../appointments/SlotPicker";
 import PatientPicker from "./PatientPicker";
 import useDoctors from "./useDoctors";
 
-const EMPTY = { doctorId: "", appointmentDateTime: "", reason: "" };
+const EMPTY = { doctorId: "", reason: "" };
+const NO_SLOT = { date: "", slot: "" };
 
 export default function BookAppointmentForm({ onBooked }) {
     const doctors = useDoctors();
     const [patient, setPatient] = useState(null);
     const [form, setForm] = useState(EMPTY);
+    const [when, setWhen] = useState(NO_SLOT);
     const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -22,14 +25,16 @@ export default function BookAppointmentForm({ onBooked }) {
     const set = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
         setErrors({ ...errors, [e.target.name]: undefined });
+        // A different doctor has different free times.
+        if (e.target.name === "doctorId") setWhen({ ...when, slot: "" });
     };
 
     const validate = () => {
         const next = {};
         if (!patient) next.patientId = "Select a patient.";
         if (!form.doctorId) next.doctorId = "Select a doctor.";
-        if (!form.appointmentDateTime) next.appointmentDateTime = "Choose a date and time.";
-        else if (new Date(form.appointmentDateTime) < new Date()) next.appointmentDateTime = "Choose a time in the future.";
+        if (!when.date) next.appointmentDateTime = "Choose a date.";
+        else if (!when.slot) next.appointmentDateTime = "Choose a free time.";
         return next;
     };
 
@@ -47,15 +52,16 @@ export default function BookAppointmentForm({ onBooked }) {
             const res = await appointmentService.book({
                 patientId: patient.id,
                 doctorId: Number(form.doctorId),
-                appointmentDateTime: toApiDateTime(form.appointmentDateTime),
+                appointmentDateTime: toSlotDateTime(when.date, when.slot),
                 reason: form.reason,
             });
             onBooked(res.data);
             setForm(EMPTY);
+            setWhen(NO_SLOT);
             setPatient(null);
         } catch (err) {
             setErrors(getFieldErrors(err));
-            // 409 = the doctor already has an appointment at that time.
+            // 409 = the time was taken, or is outside the doctor's working hours.
             setFormError(getErrorMessage(err, "The appointment couldn't be booked."));
         } finally {
             setSubmitting(false);
@@ -81,13 +87,10 @@ export default function BookAppointmentForm({ onBooked }) {
                         placeholder={doctors.loading ? "Loading doctors…" : "Select a doctor"}
                         options={doctors.options}
                     />
-                    <TextField
-                        label="Date and time"
-                        name="appointmentDateTime"
-                        type="datetime-local"
-                        required
-                        value={form.appointmentDateTime}
-                        onChange={set}
+                    <SlotPicker
+                        doctorId={form.doctorId}
+                        value={when}
+                        onChange={(v) => { setWhen(v); setErrors({ ...errors, appointmentDateTime: undefined }); }}
                         error={errors.appointmentDateTime}
                     />
                 </div>

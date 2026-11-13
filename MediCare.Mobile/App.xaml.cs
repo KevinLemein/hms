@@ -16,34 +16,20 @@ namespace MediCare.Mobile
             Database = new DataStore();
             db = Database._database;
         }
-        protected override async void OnStart()
-        {
-            //  await Task.Delay(1000);
-            // Push any locally-saved operations that haven't reached the server yet.
 
-            var page = await CheckStatusAsync();
-            if (page.Equals("login"))
-                MainPage = new NavigationPage(new LoginPage());
-            else
-                MainPage = new AppShell();
-        }
-        public async Task<string> CheckStatusAsync()
+        // Back to the sign-in screen, e.g. after signing out or when the token has expired.
+        public static void ShowLogin()
         {
-            var str = "";
-            user = await Database.GetDefaultUser();
-            if (user == null || user.IsLoggedIn == false)
-                str = "login";
-            return str;
+            ApiService.SignOut();
+            Member = null;
+            if (Current?.Windows.FirstOrDefault() is Window window)
+                window.Page = new NavigationPage(new LoginPage());
         }
-        public void GoToHome()
-        {
-            MainPage = new AppShell();
-        }
-
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(new AppShell());
+            // The API needs a token, so every launch starts at sign-in.
+            return new Window(new NavigationPage(new LoginPage()));
         }
     }
 }

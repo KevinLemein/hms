@@ -9,7 +9,7 @@ namespace MediCare.Mobile.PageModels
 {
     public partial class PaymentHistoryPageModel : ObservableObject
     {
-        private readonly IApi _api;
+        private readonly IPatientService _patients;
         private readonly ModalErrorHandler _errorHandler;
 
         public ObservableCollection<PaymentRow> Payments { get; } = new();
@@ -23,9 +23,9 @@ namespace MediCare.Mobile.PageModels
         [ObservableProperty]
         private string? _errorMessage;
 
-        public PaymentHistoryPageModel(IApi api, ModalErrorHandler errorHandler)
+        public PaymentHistoryPageModel(IPatientService patients, ModalErrorHandler errorHandler)
         {
-            _api = api;
+            _patients = patients;
             _errorHandler = errorHandler;
         }
 
@@ -39,7 +39,7 @@ namespace MediCare.Mobile.PageModels
             ErrorMessage = null;
             try
             {
-                var items = await _api.GetPaymentHistoryAsync();
+                var items = await _patients.GetMyPaymentsAsync();
 
                 Payments.Clear();
                 foreach (var item in items)
@@ -48,10 +48,9 @@ namespace MediCare.Mobile.PageModels
                 }
                 Total = items.Sum(i => i.Amount).ToString("N2");
             }
-            catch (ApiException ex)
+            catch (InvalidOperationException ex)
             {
-                var error = await ex.GetContentAsAsync<ErrorApi>();
-                ErrorMessage =ex.Message;
+                ErrorMessage = ex.Message;
             }
             catch (Exception e)
             {

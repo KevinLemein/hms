@@ -25,6 +25,9 @@
     "name" : "Reception staff tools",
     "description" : "Endpoints used by the reception desk"
   }, {
+    "name" : "Doctor schedules",
+    "description" : "A doctor's weekly working hours and time off, which decide the bookable slots"
+  }, {
     "name" : "Prescriptions",
     "description" : "Prescribing (which also dispenses and bills) and reading prescriptions"
   }, {
@@ -234,6 +237,358 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/{id}" : {
+      "get" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "One appointment",
+        "description" : "Receptionist, admin, the appointment's doctor, or its patient.",
+        "operationId" : "getById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "Reschedule an appointment",
+        "description" : "Receptionist, admin, or the appointment's patient. Only PENDING or WAITING appointments (else 409 `INVALID_STATE_TRANSITION`); the doctor stays the same. Taken slot: 409 `SLOT_UNAVAILABLE`.",
+        "operationId" : "reschedule",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RescheduleAppointmentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseAppointmentResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/doctor/{doctorId}/schedule" : {
+      "get" : {
+        "tags" : [ "Doctor schedules" ],
+        "summary" : "A doctor's weekly schedule",
+        "description" : "Receptionist, admin, or that doctor (`doctorId` is the doctor's user id). `custom=false` means no schedule is saved and the clinic default hours apply.",
+        "operationId" : "getSchedule",
+        "parameters" : [ {
+          "name" : "doctorId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDoctorScheduleResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Doctor schedules" ],
+        "summary" : "Replace a doctor's weekly schedule",
+        "description" : "Receptionist, admin, or that doctor. Replaces all blocks; an empty list restores the clinic default hours. Blocks on the same day must not overlap. Existing appointments are not moved.",
+        "operationId" : "replaceSchedule",
+        "parameters" : [ {
+          "name" : "doctorId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateScheduleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseDoctorScheduleResponse"
                 }
               }
             }
@@ -1156,7 +1511,7 @@
       "post" : {
         "tags" : [ "Appointments" ],
         "summary" : "Book an appointment",
-        "description" : "Receptionist. Also creates the visit's bill with the consultation fee, in one transaction. Taken slot: 409 `SLOT_UNAVAILABLE`. Times are clinic local time (Africa/Nairobi), `yyyy-MM-ddTHH:mm:ss`.",
+        "description" : "Receptionist (any patient, `patientId` required) or patient (themself; `patientId` omitted or their own). Also creates the visit's bill with the consultation fee, in one transaction. Taken slot: 409 `SLOT_UNAVAILABLE`. Times are clinic local time (Africa/Nairobi), `yyyy-MM-ddTHH:mm:ss`.",
         "operationId" : "bookAppointment",
         "requestBody" : {
           "content" : {
@@ -1201,6 +1556,182 @@
           },
           "403" : {
             "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/doctor/{doctorId}/time-off" : {
+      "get" : {
+        "tags" : [ "Doctor schedules" ],
+        "summary" : "A doctor's upcoming time off",
+        "description" : "Receptionist, admin, or that doctor. Time off that has not ended yet.",
+        "operationId" : "getTimeOff",
+        "parameters" : [ {
+          "name" : "doctorId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListTimeOffResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Doctor schedules" ],
+        "summary" : "Add time off",
+        "description" : "Receptionist, admin, or that doctor. Whole days, inclusive; the doctor cannot be booked on them. Existing appointments are not cancelled.",
+        "operationId" : "addTimeOff",
+        "parameters" : [ {
+          "name" : "doctorId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TimeOffRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseTimeOffResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1480,7 +2011,7 @@
       "patch" : {
         "tags" : [ "Appointments" ],
         "summary" : "Change appointment status",
-        "description" : "Receptionist/admin: any allowed transition. Doctor: own appointments, to IN_CONSULTATION or COMPLETED only. Lifecycle: PENDING -> WAITING | CANCELLED | NO_SHOW; WAITING -> IN_CONSULTATION | CANCELLED | NO_SHOW; IN_CONSULTATION -> COMPLETED. Invalid transition: 409 `INVALID_STATE_TRANSITION`.",
+        "description" : "Receptionist/admin: any allowed transition. Doctor: own appointments, to IN_CONSULTATION or COMPLETED only. Patient: own appointments, to CANCELLED only. Lifecycle: PENDING -> WAITING | CANCELLED | NO_SHOW; WAITING -> IN_CONSULTATION | CANCELLED | NO_SHOW; IN_CONSULTATION -> COMPLETED. Invalid transition: 409 `INVALID_STATE_TRANSITION`.",
         "operationId" : "updateStatus",
         "parameters" : [ {
           "name" : "id",
@@ -3092,85 +3623,6 @@
         }
       }
     },
-    "/api/appointments/{id}" : {
-      "get" : {
-        "tags" : [ "Appointments" ],
-        "summary" : "One appointment",
-        "description" : "Receptionist, admin, the appointment's doctor, or its patient.",
-        "operationId" : "getById",
-        "parameters" : [ {
-          "name" : "id",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ApiResponseAppointmentResponse"
-                }
-              }
-            }
-          },
-          "400" : {
-            "description" : "Bad request or validation failed (see `code`, `errors`)",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401" : {
-            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Signed in but not allowed (`FORBIDDEN`)",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not found (`NOT_FOUND`)",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/appointments/today" : {
       "get" : {
         "tags" : [ "Appointments" ],
@@ -3289,6 +3741,66 @@
           },
           "404" : {
             "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/doctors" : {
+      "get" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "Doctors for booking",
+        "description" : "Any signed-in user. Enabled doctors only; `id` is the value to send as `doctorId`.",
+        "operationId" : "getDoctors_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListDoctorResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -3468,6 +3980,101 @@
         }
       }
     },
+    "/api/appointments/doctor/{doctorId}/slots" : {
+      "get" : {
+        "tags" : [ "Appointments" ],
+        "summary" : "A doctor's free slots",
+        "description" : "Any signed-in user. Start times (`HH:mm`, clinic local time) not yet taken or past. Pass `ignoreAppointmentId` when rescheduling so that appointment's own slot counts as free.",
+        "operationId" : "getAvailableSlots",
+        "parameters" : [ {
+          "name" : "doctorId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "ignoreAppointmentId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseListString"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/users/role/{role}" : {
       "get" : {
         "tags" : [ "Administration" ],
@@ -3525,6 +4132,103 @@
           },
           "404" : {
             "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "Unexpected server error (`INTERNAL_ERROR`); quote the requestId",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/doctor/{doctorId}/time-off/{timeOffId}" : {
+      "delete" : {
+        "tags" : [ "Doctor schedules" ],
+        "summary" : "Remove time off",
+        "description" : "Receptionist, admin, or that doctor.",
+        "operationId" : "deleteTimeOff",
+        "parameters" : [ {
+          "name" : "doctorId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "timeOffId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad request or validation failed (see `code`, `errors`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401" : {
+            "description" : "Missing, invalid or expired token: sign in again (`UNAUTHENTICATED`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Signed in but not allowed (`FORBIDDEN`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not found (`NOT_FOUND`)",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflicts with current state (see `code`)",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -3658,6 +4362,216 @@
           "appointmentDateTime" : {
             "type" : "string",
             "format" : "date-time"
+          }
+        }
+      },
+      "RescheduleAppointmentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "appointmentDateTime" : {
+            "type" : "string",
+            "example" : "2026-11-04T10:30:00",
+            "minLength" : 1
+          },
+          "reason" : {
+            "type" : "string",
+            "example" : "Persistent cough"
+          }
+        },
+        "required" : [ "appointmentDateTime" ]
+      },
+      "ApiResponseAppointmentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/AppointmentResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AppointmentResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "patientId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "patientFirstName" : {
+            "type" : "string"
+          },
+          "patientLastName" : {
+            "type" : "string"
+          },
+          "patientEmail" : {
+            "type" : "string"
+          },
+          "patientPhone" : {
+            "type" : "string"
+          },
+          "doctorId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "doctorFirstName" : {
+            "type" : "string"
+          },
+          "doctorLastName" : {
+            "type" : "string"
+          },
+          "appointmentDateTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "appointmentStatus" : {
+            "type" : "string"
+          },
+          "notes" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ScheduleBlockRequest" : {
+        "type" : "object",
+        "properties" : {
+          "dayOfWeek" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "ISO day of week: 1 = Monday ... 7 = Sunday",
+            "example" : 1,
+            "maximum" : 7,
+            "minimum" : 1
+          },
+          "startTime" : {
+            "type" : "string",
+            "description" : "HH:mm, clinic local time",
+            "example" : "08:00",
+            "minLength" : 1
+          },
+          "endTime" : {
+            "type" : "string",
+            "description" : "HH:mm, clinic local time; must be after the start time",
+            "example" : "12:00",
+            "minLength" : 1
+          },
+          "slotMinutes" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 30,
+            "maximum" : 240,
+            "minimum" : 5
+          }
+        },
+        "required" : [ "dayOfWeek", "endTime", "slotMinutes", "startTime" ]
+      },
+      "UpdateScheduleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "blocks" : {
+            "type" : "array",
+            "description" : "The doctor's whole weekly schedule; replaces what was saved. An empty list means 'use the clinic default hours'.",
+            "items" : {
+              "$ref" : "#/components/schemas/ScheduleBlockRequest"
+            },
+            "maxItems" : 35,
+            "minItems" : 0
+          }
+        },
+        "required" : [ "blocks" ]
+      },
+      "ApiResponseDoctorScheduleResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/DoctorScheduleResponse"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "DoctorScheduleResponse" : {
+        "type" : "object",
+        "properties" : {
+          "custom" : {
+            "type" : "boolean",
+            "description" : "False when the doctor has no saved blocks and the clinic default hours apply."
+          },
+          "blocks" : {
+            "type" : "array",
+            "description" : "The saved blocks, or the clinic default hours (every day) when `custom` is false.",
+            "items" : {
+              "$ref" : "#/components/schemas/ScheduleBlockResponse"
+            }
+          }
+        }
+      },
+      "ScheduleBlockResponse" : {
+        "type" : "object",
+        "properties" : {
+          "dayOfWeek" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "startTime" : {
+            "type" : "string"
+          },
+          "endTime" : {
+            "type" : "string"
+          },
+          "slotMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
@@ -4276,6 +5190,7 @@
           "patientId" : {
             "type" : "integer",
             "format" : "int64",
+            "description" : "Required for receptionists. Patients book for themselves: omit it, or send their own patient id.",
             "example" : 12
           },
           "doctorId" : {
@@ -4293,9 +5208,33 @@
             "example" : "Persistent cough"
           }
         },
-        "required" : [ "appointmentDateTime", "doctorId", "patientId" ]
+        "required" : [ "appointmentDateTime", "doctorId" ]
       },
-      "ApiResponseAppointmentResponse" : {
+      "TimeOffRequest" : {
+        "type" : "object",
+        "properties" : {
+          "startDate" : {
+            "type" : "string",
+            "description" : "yyyy-MM-dd",
+            "example" : "2026-12-24",
+            "minLength" : 1
+          },
+          "endDate" : {
+            "type" : "string",
+            "description" : "yyyy-MM-dd, inclusive; not before the start date",
+            "example" : "2026-12-26",
+            "minLength" : 1
+          },
+          "reason" : {
+            "type" : "string",
+            "example" : "Annual leave",
+            "maxLength" : 255,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "endDate", "startDate" ]
+      },
+      "ApiResponseTimeOffResponse" : {
         "type" : "object",
         "properties" : {
           "success" : {
@@ -4305,7 +5244,7 @@
             "type" : "string"
           },
           "data" : {
-            "$ref" : "#/components/schemas/AppointmentResponse"
+            "$ref" : "#/components/schemas/TimeOffResponse"
           },
           "code" : {
             "type" : "string"
@@ -4325,55 +5264,21 @@
           }
         }
       },
-      "AppointmentResponse" : {
+      "TimeOffResponse" : {
         "type" : "object",
         "properties" : {
           "id" : {
             "type" : "integer",
             "format" : "int64"
           },
-          "patientId" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "patientFirstName" : {
+          "startDate" : {
             "type" : "string"
           },
-          "patientLastName" : {
+          "endDate" : {
             "type" : "string"
-          },
-          "patientEmail" : {
-            "type" : "string"
-          },
-          "patientPhone" : {
-            "type" : "string"
-          },
-          "doctorId" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "doctorFirstName" : {
-            "type" : "string"
-          },
-          "doctorLastName" : {
-            "type" : "string"
-          },
-          "appointmentDateTime" : {
-            "type" : "string",
-            "format" : "date-time"
           },
           "reason" : {
             "type" : "string"
-          },
-          "appointmentStatus" : {
-            "type" : "string"
-          },
-          "notes" : {
-            "type" : "string"
-          },
-          "createdAt" : {
-            "type" : "string",
-            "format" : "date-time"
           }
         }
       },
@@ -4788,6 +5693,120 @@
           },
           "last" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "ApiResponseListDoctorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DoctorResponse"
+            }
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "DoctorResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ApiResponseListTimeOffResponse" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TimeOffResponse"
+            }
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiResponseListString" : {
+        "type" : "object",
+        "properties" : {
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "requestId" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
           }
         }
       },

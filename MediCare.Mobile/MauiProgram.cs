@@ -52,7 +52,7 @@ namespace MediCare.Mobile
             builder.Services.AddSingleton<SeedDataService>();
             builder.Services.AddSingleton<ModalErrorHandler>();
             builder.Services.AddSingleton<IApi>(_ => ApiService.Instance);
-            builder.Services.AddSingleton<IPatientService, MockPatientService>();
+            builder.Services.AddSingleton<IPatientService, ApiPatientService>();
             builder.Services.AddSingleton<MainPageModel>();
             builder.Services.AddTransient<AppointmentsPageModel>();
             builder.Services.AddTransient<PrescriptionsPageModel>();

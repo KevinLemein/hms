@@ -44,7 +44,7 @@ public class DataSeeder implements CommandLineRunner {
         if (userRepository.findByRole(Role.ROLE_ADMIN).isEmpty()) {
             boolean generated = adminPassword == null || adminPassword.isBlank();
             String rawPassword = generated ? generateSecurePassword() : adminPassword;
-
+           //rawPassword ="TestAdmin#2026";
             User admin = User.builder()
                     .username("admin")
                     .email(adminEmail)

@@ -15,11 +15,13 @@ import QueuePanel from "../features/doctor/QueuePanel";
 import DoctorAppointmentsPanel from "../features/doctor/DoctorAppointmentsPanel";
 import DoctorPrescriptionsPanel from "../features/doctor/DoctorPrescriptionsPanel";
 import PrescribeDialog from "../features/doctor/PrescribeDialog";
+import DoctorSchedulePanel from "../features/schedule/DoctorSchedulePanel";
 
 const TABS = [
     { key: "queue", label: "Today's queue", icon: "users" },
     { key: "appointments", label: "My appointments", icon: "calendar" },
     { key: "prescriptions", label: "Prescriptions", icon: "pill" },
+    { key: "schedule", label: "My schedule", icon: "clock" },
 ];
 
 const byStatus = (list, s) => (list || []).filter((a) => a.appointmentStatus === s).length;
@@ -80,6 +82,7 @@ export default function DoctorDashboard() {
                 {activeTab === "queue" && <QueuePanel today={today} statusChange={statusChange} onPrescribe={setPrescribing} />}
                 {activeTab === "appointments" && <DoctorAppointmentsPanel history={history} onPrescribe={setPrescribing} />}
                 {activeTab === "prescriptions" && <DoctorPrescriptionsPanel history={history} drugs={drugs.data || []} />}
+                {activeTab === "schedule" && <DoctorSchedulePanel doctorId={user.id} />}
             </Tabs>
 
             {statusChange.dialog}

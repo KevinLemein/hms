@@ -12,6 +12,7 @@ import BookAppointmentForm from "../features/receptionist/BookAppointmentForm";
 import AppointmentsPanel from "../features/receptionist/AppointmentsPanel";
 import BillingPanel from "../features/receptionist/BillingPanel";
 import CredentialsDialog from "../features/receptionist/CredentialsDialog";
+import DoctorSchedulesTab from "../features/schedule/DoctorSchedulesTab";
 
 const TABS = [
     { key: "overview", label: "Overview", icon: "activity" },
@@ -20,6 +21,7 @@ const TABS = [
     { key: "register", label: "Register patient", icon: "userPlus" },
     { key: "patients", label: "Patients", icon: "users" },
     { key: "billing", label: "Billing", icon: "receipt" },
+    { key: "schedules", label: "Doctor schedules", icon: "clock" },
 ];
 
 export default function ReceptionistDashboard() {
@@ -59,6 +61,7 @@ export default function ReceptionistDashboard() {
                 )}
                 {activeTab === "patients" && <PatientsPanel />}
                 {activeTab === "billing" && <BillingPanel />}
+                {activeTab === "schedules" && <DoctorSchedulesTab />}
             </Tabs>
 
             {credentials && (
