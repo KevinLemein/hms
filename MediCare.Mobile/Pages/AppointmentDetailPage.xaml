@@ -19,27 +19,50 @@
         <VerticalStackLayout Padding="{StaticResource LayoutPadding}" Spacing="12">
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
 
-            <Border Style="{StaticResource CardStyle}">
-                <VerticalStackLayout Spacing="8">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="{Binding Appointment.DoctorName}" Style="{StaticResource Title3}" />
-                        <Label Grid.Column="1" Text="{Binding Appointment.StatusText}"
-                               TextColor="{Binding Appointment.StatusColor}"
-                               FontAttributes="Bold" VerticalOptions="Center" />
+            <Border Style="{StaticResource ListCardStyle}" Padding="20">
+                <VerticalStackLayout Spacing="16">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Doctor" Style="{StaticResource MutedLabel}" />
+                            <Label Text="{Binding Appointment.DoctorName}" Style="{StaticResource Title3}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" Style="{StaticResource ChipStyle}"
+                                BackgroundColor="{Binding Appointment.StatusColor}">
+                            <Label Text="{Binding Appointment.StatusText}" TextColor="White"
+                                   FontSize="11" FontAttributes="Bold" />
+                        </Border>
                     </Grid>
-                    <Label Text="{Binding Appointment.DateText, StringFormat='Date: {0}'}" Style="{StaticResource Body2}" />
-                    <Label Text="{Binding Appointment.TimeText, StringFormat='Time: {0}'}" Style="{StaticResource Body2}" />
-                    <Label Text="{Binding Appointment.Reason, StringFormat='Reason: {0}'}" Style="{StaticResource Body2}" />
-                    <Label Text="{Binding Appointment.Notes, StringFormat='Doctor notes: {0}'}" Style="{StaticResource Body2}"
-                           IsVisible="{Binding Appointment.HasNotes}" />
+
+                    <BoxView HeightRequest="1" Color="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Date" Style="{StaticResource MutedLabel}" />
+                            <Label Text="{Binding Appointment.DateText}" Style="{StaticResource Body2Strong}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="Time" Style="{StaticResource MutedLabel}" />
+                            <Label Text="{Binding Appointment.TimeText}" Style="{StaticResource Body2Strong}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="Reason" Style="{StaticResource MutedLabel}" />
+                        <Label Text="{Binding Appointment.Reason}" Style="{StaticResource Body2}" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="2" IsVisible="{Binding Appointment.HasNotes}">
+                        <Label Text="Doctor notes" Style="{StaticResource MutedLabel}" />
+                        <Label Text="{Binding Appointment.Notes}" Style="{StaticResource Body2}" />
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
             </Border>
 
-            <Button Text="Edit Appointment" Command="{Binding EditCommand}" CornerRadius="20"
+            <Button Text="Edit Appointment" Command="{Binding EditCommand}" CornerRadius="24" HeightRequest="48"
                     IsVisible="{Binding CanModify}" />
-            <Button Text="Cancel Appointment" Command="{Binding CancelCommand}" CornerRadius="20"
+            <Button Text="Cancel Appointment" Command="{Binding CancelCommand}" CornerRadius="24" HeightRequest="48"
                     BackgroundColor="IndianRed" TextColor="White" IsVisible="{Binding CanModify}" />
-            <Button Text="{Binding PrescriptionsText}" Command="{Binding ViewPrescriptionsCommand}" CornerRadius="20"
+            <Button Text="{Binding PrescriptionsText}" Command="{Binding ViewPrescriptionsCommand}" CornerRadius="24" HeightRequest="48"
                     IsVisible="{Binding HasPrescriptions}" />
         </VerticalStackLayout>
     </ScrollView>

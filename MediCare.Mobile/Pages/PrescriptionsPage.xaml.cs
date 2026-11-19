@@ -12,16 +12,14 @@ namespace MediCare.Mobile.Pages
 
         private void OnItemSelected(object? sender, SelectionChangedEventArgs e)
         {
-            if (e.CurrentSelection.FirstOrDefault() is AppointmentRow row && BindingContext is PrescriptionsPageModel model)
-                model.OpenAppointmentCommand.Execute(row);
-        }
+            if (e.CurrentSelection.FirstOrDefault() is not AppointmentRow row)
+                return;
 
-        protected override void OnAppearing()
-        {
-            base.OnAppearing();
-            // Toggling the mode clears the grid's selection so the same row can be tapped again.
-            AppointmentsGrid.SelectionMode = SelectionMode.None;
-            AppointmentsGrid.SelectionMode = SelectionMode.Single;
+            // Clear the selection so the same card can be tapped again.
+            AppointmentsList.SelectedItem = null;
+
+            if (BindingContext is PrescriptionsPageModel model)
+                model.OpenAppointmentCommand.Execute(row);
         }
     }
 }

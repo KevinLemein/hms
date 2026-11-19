@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:pageModels="clr-namespace:MediCare.Mobile.PageModels"
@@ -28,11 +28,13 @@
                 <Setter Property="VerticalOptions" Value="Center" />
             </Style>
 
-            <Style x:Key="QuickActionTile" TargetType="Border">
-                <Setter Property="StrokeShape" Value="RoundRectangle 16" />
-                <Setter Property="StrokeThickness" Value="0" />
-                <Setter Property="Padding" Value="0,16" />
-                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Gray600}}" />
+            <Style x:Key="QuickActionTile" TargetType="Border" BasedOn="{StaticResource ListCardStyle}">
+                <Setter Property="Padding" Value="0,18" />
+            </Style>
+
+            <Style x:Key="QuickActionLabel" TargetType="Label">
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="HorizontalOptions" Value="Center" />
             </Style>
         </ResourceDictionary>
     </ContentPage.Resources>
@@ -44,51 +46,94 @@
                     StrokeThickness="0"
                     Padding="20"
                     BackgroundColor="{StaticResource Primary}">
-                <VerticalStackLayout Spacing="14">
-                    <VerticalStackLayout Spacing="2">
-                        <Label Text="Welcome back" TextColor="{StaticResource Secondary}" FontSize="14" />
-                        <Label Text="{Binding Member.FullName}"
-                               TextColor="White"
-                               FontSize="22"
-                               FontAttributes="Bold"
-                               SemanticProperties.HeadingLevel="Level1" />
-                        <Label Text="{Binding Member.IDNo}"
-                               TextColor="{StaticResource Secondary}"
-                               FontSize="14" />
-                    </VerticalStackLayout>
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="Welcome back" TextColor="White" Opacity="0.8" FontSize="14" />
+                    <Label Text="{Binding Member.FullName}"
+                           TextColor="White"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           SemanticProperties.HeadingLevel="Level1" />
+                    <Label Text="{Binding Member.IDNo}"
+                           TextColor="White"
+                           Opacity="0.8"
+                           FontSize="14" />
                 </VerticalStackLayout>
             </Border>
 
+            <VerticalStackLayout Spacing="10" IsVisible="{Binding HasNextAppointment}">
+                <Label Text="Next Appointment" Style="{StaticResource Title2}" SemanticProperties.HeadingLevel="Level2" />
+                <Border Style="{StaticResource ListCardStyle}">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding OpenNextAppointmentCommand}" />
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                        <Border StrokeShape="RoundRectangle 12" StrokeThickness="0"
+                                BackgroundColor="{StaticResource Primary}"
+                                WidthRequest="52" HeightRequest="52" VerticalOptions="Start">
+                            <Label Text="{x:Static f:FluentUI.calendar_clock_24_regular}"
+                                   FontFamily="{x:Static f:FluentUI.FontFamily}" FontSize="26"
+                                   TextColor="White"
+                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="3">
+                            <Label Text="{Binding NextAppointment.DoctorName}" Style="{StaticResource Body1Strong}"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding NextAppointment.DateText}" Style="{StaticResource MutedLabel}" />
+                            <Label Text="{Binding NextAppointment.TimeText}" Style="{StaticResource MutedLabel}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="2" Style="{StaticResource ChipStyle}"
+                                BackgroundColor="{Binding NextAppointment.StatusColor}">
+                            <Label Text="{Binding NextAppointment.StatusText}" TextColor="White"
+                                   FontSize="11" FontAttributes="Bold" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
+
             <Label Text="Quick Actions" Style="{StaticResource Title2}" SemanticProperties.HeadingLevel="Level2" />
 
-            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
-                <Border Grid.Column="0" Style="{StaticResource QuickActionTile}">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource QuickActionTile}"
+                        SemanticProperties.Description="Book an appointment">
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding BookAppointmentCommand}" />
                     </Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="8">
                         <Label Text="{x:Static f:FluentUI.calendar_add_24_regular}" Style="{StaticResource QuickActionIcon}" />
-                        <Label Text="Book" HorizontalOptions="Center" FontSize="14" />
+                        <Label Text="Book" Style="{StaticResource QuickActionLabel}" />
                     </VerticalStackLayout>
                 </Border>
 
-                <Border Grid.Column="1" Style="{StaticResource QuickActionTile}">
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource QuickActionTile}"
+                        SemanticProperties.Description="View appointments">
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding ViewAppointmentsCommand}" />
                     </Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="8">
                         <Label Text="{x:Static f:FluentUI.calendar_ltr_24_regular}" Style="{StaticResource QuickActionIcon}" />
-                        <Label Text="Appointments" HorizontalOptions="Center" FontSize="14" />
+                        <Label Text="Appointments" Style="{StaticResource QuickActionLabel}" />
                     </VerticalStackLayout>
                 </Border>
 
-                <Border Grid.Column="2" Style="{StaticResource QuickActionTile}">
+                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource QuickActionTile}"
+                        SemanticProperties.Description="View prescriptions">
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Command="{Binding ViewPrescriptionsCommand}" />
                     </Border.GestureRecognizers>
                     <VerticalStackLayout Spacing="8">
                         <Label Text="{x:Static f:FluentUI.pill_24_regular}" Style="{StaticResource QuickActionIcon}" />
-                        <Label Text="Prescriptions" HorizontalOptions="Center" FontSize="14" />
+                        <Label Text="Prescriptions" Style="{StaticResource QuickActionLabel}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource QuickActionTile}"
+                        SemanticProperties.Description="View payments">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ViewPaymentsCommand}" />
+                    </Border.GestureRecognizers>
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="{x:Static f:FluentUI.payment_24_regular}" Style="{StaticResource QuickActionIcon}" />
+                        <Label Text="Payments" Style="{StaticResource QuickActionLabel}" />
                     </VerticalStackLayout>
                 </Border>
             </Grid>

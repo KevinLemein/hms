@@ -5,10 +5,10 @@
 
 
 
-    <Color x:Key="Primary">#b83006</Color>
-    <Color x:Key="PrimaryDark">#8a2202</Color>
-    <Color x:Key="PrimaryDarkText">#d2ac67</Color>
-    <Color x:Key="Secondary">#d2ac67</Color>
+    <Color x:Key="Primary">#0077ce</Color>
+    <Color x:Key="PrimaryDark">#0077ce</Color>
+    <Color x:Key="PrimaryDarkText">#0077ce</Color>
+    <Color x:Key="Secondary">#97d453</Color>
     <Color x:Key="SecondaryDarkText">#efab2f</Color>
 
 
