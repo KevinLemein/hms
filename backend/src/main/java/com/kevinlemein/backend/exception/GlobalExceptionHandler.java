@@ -1,6 +1,7 @@
 package com.kevinlemein.backend.exception;
 
 import com.kevinlemein.backend.dto.ApiResponse;
+import org.hibernate.exception.ConstraintViolationException.ConstraintKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -156,12 +157,39 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        // Only the constraint name: the database's detail text contains the
-        // offending values (emails, phone numbers), which must not be logged.
-        log.warn("Data integrity violation (constraint: {})", constraintName(ex));
+        org.hibernate.exception.ConstraintViolationException cve = constraintViolation(ex);
+        String constraint = cve != null && cve.getConstraintName() != null ? cve.getConstraintName() : "unknown";
+        ConstraintKind kind = cve != null ? cve.getKind() : ConstraintKind.OTHER;
+
+        // Only the constraint name and kind: the database's detail text contains
+        // the offending values (emails, phone numbers), which must not be logged.
+        // NOT NULL / CHECK violations mean the server wrote bad data (a bug or
+        // schema drift), not that the client conflicted with anything.
+        if (kind == ConstraintKind.NOT_NULL || kind == ConstraintKind.CHECK) {
+            log.error("Data integrity violation (kind: {}, constraint: {})", kind, constraint, ex);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error(ErrorCodes.INTERNAL_ERROR, "An unexpected error occurred. Please try again later."));
+        }
+
+        log.warn("Data integrity violation (kind: {}, constraint: {})", kind, constraint);
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(ErrorCodes.CONFLICT, "The request conflicts with existing data. Refresh and try again."));
+                .body(ApiResponse.error(ErrorCodes.CONFLICT, describeConflict(kind, constraint)));
+    }
+
+    private static String describeConflict(ConstraintKind kind, String constraint) {
+        return switch (constraint) {
+            case "uq_line_item_source" -> "This item has already been charged to a bill";
+            case "uk6dotkott2kjsp8vw4d0m25fb7" -> "A user with this email address already exists";
+            case "ukr43af9ap4edm43mmtq01oddj6" -> "A user with this username already exists";
+            case "uk9tbsl3fmey0eofbm2xj69v4qs" -> "This user already has a patient record";
+            default -> switch (kind) {
+                case UNIQUE -> "A record with the same details already exists";
+                case FOREIGN_KEY -> "The request refers to a record that does not exist, or that other records still depend on";
+                default -> "The request conflicts with existing data";
+            };
+        };
     }
 
     /** Lock timeout / deadlock while another request held the same row. Safe to retry. */
@@ -202,12 +230,12 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ErrorCodes.INTERNAL_ERROR, "An unexpected error occurred. Please try again later."));
     }
 
-    private static String constraintName(Throwable ex) {
+    private static org.hibernate.exception.ConstraintViolationException constraintViolation(Throwable ex) {
         for (Throwable t = ex; t != null; t = t.getCause()) {
-            if (t instanceof org.hibernate.exception.ConstraintViolationException cve && cve.getConstraintName() != null) {
-                return cve.getConstraintName();
+            if (t instanceof org.hibernate.exception.ConstraintViolationException cve) {
+                return cve;
             }
         }
-        return "unknown";
+        return null;
     }
 }

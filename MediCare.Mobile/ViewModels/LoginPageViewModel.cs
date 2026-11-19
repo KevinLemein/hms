@@ -20,6 +20,8 @@ namespace MediCare.Mobile.ViewModels
         public LoginPageViewModel(IApi api) {  
 
             _api = api;
+            Email = "johndoe@medicare.com";
+            Password= "@Admin890";
 
         }
 

@@ -89,7 +89,7 @@ public class AppointmentService {
         doctorScheduleService.requireBookable(doctor.getId(), dateTime);
 
         if (appointmentRepository.countActiveDoctorAppointments(doctor.getId(), dateTime, dateTime) > 0) {
-            throw new DuplicateResourceException(ErrorCodes.SLOT_UNAVAILABLE, "The doctor already has an appointment at this time");
+            throw slotTaken(doctor, dateTime);
         }
 
         Appointment appointment = Appointment.builder()
@@ -209,7 +209,7 @@ public class AppointmentService {
         if (!dateTime.equals(appointment.getAppointmentDateTime())) {
             doctorScheduleService.requireBookable(doctor.getId(), dateTime);
             if (appointmentRepository.countActiveDoctorAppointments(doctor.getId(), dateTime, dateTime) > 0) {
-                throw new DuplicateResourceException(ErrorCodes.SLOT_UNAVAILABLE, "The doctor already has an appointment at this time");
+                throw slotTaken(doctor, dateTime);
             }
         }
 
@@ -268,6 +268,13 @@ public class AppointmentService {
             throw new InvalidRequestException("Selected doctor's account is disabled");
         }
         return doctor;
+    }
+
+    private static DuplicateResourceException slotTaken(User doctor, LocalDateTime dateTime) {
+        return new DuplicateResourceException(ErrorCodes.SLOT_UNAVAILABLE,
+                "Dr. %s %s already has an appointment on %s at %s. Please choose another time."
+                        .formatted(doctor.getFirstName(), doctor.getLastName(), dateTime.toLocalDate(),
+                                dateTime.toLocalTime().withSecond(0).withNano(0)));
     }
 
     private LocalDateTime parseFutureDateTime(String value) {
