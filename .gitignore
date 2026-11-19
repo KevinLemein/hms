@@ -83,3 +83,6 @@ ServiceDefinition.build.csdef
 desktop.ini
 _vti_cnf/
 _vti_pvt/
+.DS_Store
+._*
+__MACOSX/

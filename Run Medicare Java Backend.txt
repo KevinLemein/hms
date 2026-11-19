@@ -1,2 +1,37 @@
 
 $env:Path = [Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [Environment]::GetEnvironmentVariable("Path","User"); $env:DB_URL = "jdbc:postgresql://102.218.215.79:5432/medicare"; $env:DB_USERNAME = "postgres"; $env:DB_PASSWORD = "@Admin890"; $env:JWT_SECRET = [Convert]::ToBase64String((1..64 | ForEach-Object { Get-Random -Maximum 256 }) -as [byte[]]); $env:JWT_EXPIRATION = "3600000"; $env:API_DOCS_ENABLED = "true"; .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=docker"
+
+
+
+npm install
+npm run dev
+
+
+docker compose up --build
+
+
+
+ http://localhost:3000
+ 
+ 
+ The default admin login is kevin@gmail.com / Admin@123.
+ 
+ 
+ 
+ $env:Path += ";C:\Program Files (x86)\Android\android-sdk\platform-tools" adb reverse tcp:8080 tcp:8080
+
+
+
+
+ MAC OS::::::::::::::::::
+ cd /Volumes/BOOTCAMP/Projects/MediCare/backend
+
+export DB_URL="jdbc:postgresql://102.218.215.79:5432/medicare"
+export DB_USERNAME="postgres"
+export DB_PASSWORD='@Admin890'
+export JWT_SECRET="$(openssl rand -base64 64 | tr -d '\n')"
+export JWT_EXPIRATION="3600000"
+export API_DOCS_ENABLED="true"
+
+chmod +x mvnw
+./mvnw spring-boot:run -Dspring-boot.run.profiles=docker
